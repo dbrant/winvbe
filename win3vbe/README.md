@@ -92,7 +92,9 @@ The drawing engine is the same as in the [Windows 2.x driver](../win2vbe):
   writes them back. This covers BitBlt, FastBorder, Output (scan lines, styled
   polylines), ExtTextOut/StrBlt (raster fonts), Pixel and ScanLR.
 * The software 32x32 cursor is protected by a semaphore against interrupt-time
-  MoveCursor calls.
+  MoveCursor calls. Redraws at interrupt time run on the driver's own stack
+  with interrupts disabled, because the mouse and timer interrupts can call
+  them on very small stacks and let mouse interrupts nest.
 
 What is new for 3.0:
 

@@ -1,6 +1,7 @@
 VESA/VBE display drivers for Windows 2.x
 =======================================
 Dmitry Brant, 2026
+https://dmitrybrant.com
 
 VBExxxx  = 8 colours  (like the Windows 2.03 VGA driver)
 VBExxxxC = 16 colours

@@ -5,3 +5,5 @@ https://dmitrybrant.com
 
 * Drivers for Windows 2.x: ./win2vbe
 * Drivers for Windows 3.0: ./win3vbe
+
+For VBE drivers that work with Windows 3.1, see the excellent [vbesvga.drv](https://github.com/PluMGMK/vbesvga.drv) repo.

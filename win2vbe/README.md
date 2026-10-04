@@ -82,7 +82,10 @@ and it was written from scratch rather than by patching the VGA driver.
   polylines), ExtTextOut/StrBlt (Windows 2 raster fonts), Pixel and ScanLR
   (flood fill). Solid fills and screen-to-screen copies have fast paths.
 * The software cursor is 32x32 with save-under. A semaphore guards it, so
-  MoveCursor can safely be called at interrupt time while other code is drawing.
+  MoveCursor can safely be called at interrupt time while other code is drawing. Redraws at
+  interrupt time run on the driver's own stack with interrupts disabled:
+  Windows calls the cursor routines from the mouse and timer interrupts on
+  stacks of only a few hundred bytes, and lets mouse interrupts nest.
 * The cursors, icons, system bitmaps and OEMBIN resources are copied from the
   stock `IBMPS250.DRV`, because USER loads them from the display driver.
 * Each driver uses 16–24 KB of memory. The VGA driver uses about 25 KB.

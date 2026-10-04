@@ -294,7 +294,7 @@ MoveCursor:
         xchg    al, [cur_busy]
         or      al, al
         jnz     .done                   ; screen busy: CheckCursor will catch up
-        call    cur_update
+        call    cur_update_ps
         mov     byte [cur_busy], 0
 .done:  EPILOG  4
 
@@ -305,9 +305,33 @@ CheckCursor:
         xchg    al, [cur_busy]
         or      al, al
         jnz     .done
-        call    cur_update
+        call    cur_update_ps
         mov     byte [cur_busy], 0
 .done:  EPILOG  0
+
+; cur_update_ps: cur_update for MoveCursor / CheckCursor, which run at
+; interrupt time:
+; * on the driver's own stack: the caller's stack can be tiny (in real mode
+;   SYSTEM's timer handler calls CheckCursor on a private stack of a few
+;   hundred bytes), far too little for redrawing the cursor and calling the
+;   video BIOS to switch banks;
+; * with interrupts disabled: the mouse interrupt handler re-enables
+;   interrupts before calling USER.  A slow redraw with interrupts enabled
+;   lets further mouse packets nest into it until that stack overflows.
+; The caller holds cur_busy, so nobody else is using cur_stack.
+cur_update_ps:
+        pushf
+        cli
+        mov     [cur_oss], ss
+        mov     [cur_osp], esp
+        mov     ax, ds
+        mov     ss, ax
+        mov     esp, cur_stack_top
+        call    cur_update
+        mov     ss, [cur_oss]
+        mov     esp, [cur_osp]
+        popf
+        ret
 
 ; cursor_off: forget the on-screen cursor (screen is being abandoned)
 cursor_off:

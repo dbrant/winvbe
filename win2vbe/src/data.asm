@@ -133,6 +133,10 @@ cur_tmp         times 32 db 0
 cur_and         times 128 db 0xFF
 cur_xor         times 128 db 0
 cur_save        times 1024 db 0
+cur_oss         dw      0
+cur_osp         dw      0
+cur_stack       times 2048 db 0         ; private stack for interrupt-time cursor redraws
+cur_stack_top:
 
                 align   4
 roptab          times ROPTAB_SIZE db 0
