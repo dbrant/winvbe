@@ -1,5 +1,5 @@
 ; ---------------------------------------------------------------------------
-; Common definitions for the Bochs/QEMU VBE display driver for Windows 2.x
+; Common definitions for the VESA/VBE display driver for Windows 2.x
 ; ---------------------------------------------------------------------------
 
 %ifndef XRES
@@ -8,19 +8,87 @@
 %ifndef YRES
 %define YRES 768
 %endif
-%ifndef NPLANES
-%define NPLANES 3               ; planes in GDI-visible color bitmaps
-%endif
+%ifndef BPP
+%define BPP 4                   ; 4: 8 or 16 colours, planar towards GDI
+%endif                          ; 8: 256 colours, fixed palette
 %ifndef DEBUG
 %define DEBUG 1
 %endif
 
-%if NPLANES = 3
-NCOLORS         equ 8
-%else
-NCOLORS         equ 16
+; Pixel elements: the row engine handles one element per pixel.  ELEM is its
+; size in bytes, and the macros below name registers / string instructions of
+; that width.  Physical colours are dwords: the pixel value in the low ELEM
+; bytes (low 3 for TrueColor), the mono value (0/1) in byte MONOB.
+%if BPP = 4
+%ifndef NPLANES
+%define NPLANES 3               ; planes in GDI-visible colour bitmaps (3 or 4)
 %endif
-CMASK           equ NCOLORS-1
+PACKED          equ 0
+NCOLORS         equ (1 << NPLANES)
+ELEM            equ 1
+PIXMASK         equ NCOLORS-1
+%elif BPP = 8
+%undef NPLANES
+%define NPLANES 8               ; 256 colours as 8 planes towards GDI (planar
+PACKED          equ 0           ; applications such as PC Paintbrush need that)
+NCOLORS         equ 16                  ; the VGA colours (EnumObj)
+ELEM            equ 1
+PIXMASK         equ 0xFF
+%elif BPP = 16
+%define NPLANES 1
+PACKED          equ 1
+NCOLORS         equ 20
+ELEM            equ 2
+PIXMASK         equ 0xFFFF
+%elif BPP = 32
+%define NPLANES 1
+PACKED          equ 1
+NCOLORS         equ 20
+ELEM            equ 4
+PIXMASK         equ 0x00FFFFFF
+%else
+%error BPP must be 4, 8, 16 or 32
+%endif
+CMASK           equ PIXMASK
+BITROP          equ (BPP > 4)           ; ROPs evaluated bitwise on pixel values (else by table)
+PALMGR          equ 0                   ; 256 colours through the palette manager (3.0)
+FIXPAL          equ (BPP = 8)           ; 256 colours, fixed palette
+FP_CUBE         equ 20                  ; fixed palette: first entry of the 6x6x6 cube
+WHITE           equ PIXMASK             ; pixel value of white (all bits set)
+%if ELEM = 1
+MONOB           equ 1
+%define EA al
+%define EB bl
+%define EC cl
+%define ED dl
+%define ESZ byte
+%define STOSE stosb
+%define LODSE lodsb
+%define MOVSE movsb
+ESHIFT          equ 0
+%elif ELEM = 2
+MONOB           equ 2
+%define EA ax
+%define EB bx
+%define EC cx
+%define ED dx
+%define ESZ word
+%define STOSE stosw
+%define LODSE lodsw
+%define MOVSE movsw
+ESHIFT          equ 1
+%else
+MONOB           equ 3
+%define EA eax
+%define EB ebx
+%define EC ecx
+%define ED edx
+%define ESZ dword
+%define STOSE stosd
+%define LODSE lodsd
+%define MOVSE movsd
+ESHIFT          equ 2
+%endif
 
 ; Scanline pitch in video memory: a power of two so every scanline lies in a
 ; single 64K bank.
@@ -31,7 +99,7 @@ PSHIFT          equ 11
 %else
 PSHIFT          equ 12
 %endif
-PITCH           equ (1 << PSHIFT)
+PITCH           equ (1 << PSHIFT)       ; DISPI scan line, in pixels
 LSHIFT          equ (16 - PSHIFT)       ; log2(lines per bank)
 LPBMASK         equ ((1 << LSHIFT) - 1)
 
@@ -92,13 +160,13 @@ PEN_STYLE       equ 4
 PEN_SIZE        equ 6
 
 ; Physical brush
-BR_COLOR        equ 0           ; 64 bytes: 8 rows x 8 pixel indices
-BR_MONO         equ 64          ; 8 bytes: mono pattern, bit 7 = leftmost
-BR_STYLE        equ 72          ; 0 solid, 1 hollow, 2 hatched, 3 pattern
-BR_FLAGS        equ 73
-BR_FG           equ 74          ; hatched: foreground index
-BR_FGMONO       equ 75          ; hatched: foreground mono value
-BR_SIZE         equ 76
+BR_COLOR        equ 0           ; 64 elements: 8 rows x 8 pixels
+BR_MONO         equ 64*ELEM     ; 8 bytes: mono pattern (hatch bits), bit 7 = leftmost
+BR_STYLE        equ BR_MONO+8   ; 0 solid, 1 hollow, 2 hatched, 3 pattern
+BR_FLAGS        equ BR_MONO+9
+BR_FG           equ BR_MONO+10  ; dword: solid / hatch foreground pixel
+BR_FGMONO       equ BR_MONO+14  ; its mono value
+BR_SIZE         equ BR_MONO+16
 
 BRF_HATCH       equ 1
 
@@ -120,11 +188,12 @@ SK_SCREEN       equ 0
 SK_MONO         equ 1
 SK_COLOR        equ 2
 
-ROWBUF          equ ((XRES + 64 + 15) & ~15)
+ROWPIX          equ ((XRES + 64 + 15) & ~15)    ; pixels per row buffer
+ROWBUF          equ ROWPIX*ELEM                 ; bytes
 %ifdef TESTMAXW
 MAXW            equ TESTMAXW
 %else
-MAXW            equ (ROWBUF - 64)          ; widest span processed at once
+MAXW            equ (ROWPIX - 64)          ; widest span processed at once
 %endif
 
 ; ---------------------------------------------------------------------------

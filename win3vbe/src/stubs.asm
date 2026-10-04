@@ -34,6 +34,7 @@ Inquire:
 ; Control(lpDestDev, wFunction, lpInData, lpOutData)
 QUERYESCSUPPORT equ 8
 GETCOLORTABLE   equ 5
+SETCOLORTABLE   equ 4
 Control:
         PROLOG
         xor     ax, ax
@@ -46,11 +47,29 @@ Control:
         je      .yes
         cmp     bx, GETCOLORTABLE
         je      .yes
+%if FIXPAL
+        cmp     bx, SETCOLORTABLE
+        je      .yes
+%endif
         jmp     .done
-.gct:   cmp     bx, GETCOLORTABLE
+.gct:
+%if FIXPAL
+        cmp     bx, SETCOLORTABLE
+        je      .sct
+%endif
+        cmp     bx, GETCOLORTABLE
         jne     .done
         les     di, [bp+10]
         mov     bx, [es:di]
+%if FIXPAL
+        cmp     bx, 256                 ; the fixed palette: index = pixel value
+        jae     .done
+        shl     bx, 2
+        les     di, [bp+6]
+        mov     ax, [pal_rgb+bx]
+        mov     [es:di], ax
+        mov     al, [pal_rgb+bx+2]
+%else
         cmp     bx, NCOLORS
         jae     .done
         imul    bx, bx, 3
@@ -58,10 +77,50 @@ Control:
         mov     ax, [cs:rgbtab+bx]
         mov     [es:di], ax
         mov     al, [cs:rgbtab+bx+2]
+%endif
         xor     ah, ah
         mov     [es:di+2], ax
 .yes:   mov     ax, 1
 .done:  EPILOG  14
+%if FIXPAL
+; SETCOLORTABLE: lpInData -> {WORD index; COLORREF colour}, lpOutData -> the
+; colour set.  Applications (PC Paintbrush) load image palettes this way.
+.sct:   les     di, [bp+10]
+        mov     bx, [es:di]
+        cmp     bx, 256
+        jae     .done
+        mov     eax, [es:di+2]
+        and     eax, 0x00FFFFFF
+        shl     bx, 2
+        mov     [pal_rgb+bx], eax       ; R, G, B, 0
+        mov     byte [pal_dirty], 1
+        cmp     byte [enabled], 0
+        je      .so
+        mov     dx, 0x3C8               ; the DAC entry
+        shr     bx, 2
+        mov     al, bl
+        out     dx, al
+        inc     dx
+        mov     al, [es:di+2]
+        shr     al, 2
+        out     dx, al
+        mov     al, [es:di+3]
+        shr     al, 2
+        out     dx, al
+        mov     al, [es:di+4]
+        shr     al, 2
+        out     dx, al
+.so:    les     di, [bp+6]
+        mov     ax, es
+        or      ax, di
+        jz      .yes
+        les     si, [bp+10]
+        mov     eax, [es:si+2]
+        les     di, [bp+6]
+        and     eax, 0x00FFFFFF
+        mov     [es:di], eax
+        jmp     .yes
+%endif
 
 ; EnumObj(lpDestDev, wStyle, lpCallbackFunc, lpClientData)
 eo_style        equ 14

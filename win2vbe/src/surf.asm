@@ -18,7 +18,11 @@ load_surf:
         mov     al, [es:si+bmPlanes]
         mov     [bx+SURF.planes], al
         mov     byte [bx+SURF.kind], SK_MONO
+%if PACKED
+        cmp     word [es:si+bmPlanes], 0x0101   ; 1 plane, 1 bit per pixel
+%else
         cmp     al, 1
+%endif
         je      .m
         mov     byte [bx+SURF.kind], SK_COLOR
 .m:     mov     ax, [es:si+bmBits]
@@ -98,7 +102,31 @@ read_row:
         jne     .mem
         call    scr_read
         jmp     .done
-.mem:   push    dx                      ; w
+.mem:
+%if PACKED
+        cmp     byte [bx+SURF.kind], SK_COLOR
+        jne     .mono
+        push    dx                      ; packed colour: copy w pixels
+        push    di
+        call    row_addr
+        mov     si, di
+        pop     di
+        pop     dx
+        shl     cx, ESHIFT
+        add     si, cx
+        mov     cx, dx
+        shl     cx, ESHIFT
+        push    ds
+        push    es
+        push    ds
+        pop     es
+        pop     ds
+        rep     movsb
+        pop     ds
+        jmp     .done
+.mono:
+%endif
+        push    dx                      ; w
         push    di                      ; buffer
         push    cx                      ; x
         call    row_addr                ; es:di row, dx plane stride
@@ -133,7 +161,11 @@ read_row:
         pop     di
         pop     si
         cmp     byte [bx+SURF.kind], SK_COLOR
+%if PACKED && ELEM > 1
+        jne     .widen
+%else
         jne     .done
+%endif
         ; further planes: OR in shifted bits
         mov     cl, 1
 .pl:    add     si, bp
@@ -172,6 +204,24 @@ read_row:
         loop    .t8
         pop     bx
 %endif
+%if PACKED && ELEM > 1
+        jmp     .done
+.widen: ; mono row: one byte per pixel so far; widen to elements, last first
+        mov     si, sp
+        mov     di, [ss:si+4]           ; the caller's buffer (pushed di)
+        mov     si, [ss:si+8]           ; w (pushed dx)
+        dec     si
+        push    bx
+        mov     bx, di
+.wd:    movzx   eax, byte [bx+si]
+        push    si
+        shl     si, ESHIFT
+        mov     [bx+si], EA
+        pop     si
+        dec     si
+        jns     .wd
+        pop     bx
+%endif
 .done:  pop     bp
         pop     es
         pop     di
@@ -198,6 +248,50 @@ write_row:
         call    scr_write
         jmp     .done
 .mem:
+%if PACKED
+        cmp     byte [bx+SURF.kind], SK_COLOR
+        jne     .mono
+        push    dx                      ; packed colour: copy w pixels
+        push    si
+        call    row_addr
+        pop     si
+        pop     dx
+        shl     cx, ESHIFT
+        add     di, cx
+        mov     cx, dx
+        shl     cx, ESHIFT
+        rep     movsb
+        jmp     .done
+.mono:
+%if ELEM > 1
+        push    ax                      ; mono: narrow the elements to bytes
+        push    di                      ; (bit 0) in XBUF, then write those
+        push    es
+        push    cx
+        push    ds
+        pop     es
+        and     cx, 7
+        mov     di, XBUF+8
+        sub     si, cx                  ; keep the pixels before x for the
+        sub     si, cx                  ; column alignment below
+%if ELEM = 4
+        sub     si, cx
+        sub     si, cx
+%endif
+        sub     di, cx
+        add     cx, dx
+.nr:    mov     al, [si]
+        and     al, 1
+        stosb
+        add     si, ELEM
+        loop    .nr
+        pop     cx
+        pop     es
+        pop     di
+        pop     ax
+        mov     si, XBUF+8
+%endif
+%endif
 %if NPLANES = 4
         cmp     byte [bx+SURF.planes], 3
         jne     .w16
@@ -315,7 +409,7 @@ write_row:
         ret
 
 ; ---------------------------------------------------------------------------
-; get_pixel: bx -> SURF, cx = x, ax = y  ->  al = value.  Preserves bx, cx.
+; get_pixel: bx -> SURF, cx = x, ax = y  ->  EA = value.  Preserves bx, cx.
 ; ---------------------------------------------------------------------------
 get_pixel:
         push    dx
@@ -325,7 +419,20 @@ get_pixel:
         jne     .mem
         call    scr_getpix
         jmp     .r
-.mem:   push    cx
+.mem:
+%if PACKED
+        cmp     byte [bx+SURF.kind], SK_COLOR
+        jne     .mono
+        push    cx
+        call    row_addr
+        shl     cx, ESHIFT
+        add     di, cx
+        mov     EA, [es:di]
+        pop     cx
+        jmp     .r
+.mono:  xor     eax, eax
+%endif
+        push    cx
         push    si
         call    row_addr                ; es:di, dx = plane stride
         mov     ax, cx
@@ -349,6 +456,9 @@ get_pixel:
         dec     ch
         jnz     .l
         mov     al, ah
+%if PACKED
+        xor     ah, ah
+%endif
 %if NPLANES = 4
         cmp     byte [bx+SURF.planes], 3
         jne     .g16
@@ -363,7 +473,7 @@ get_pixel:
         pop     dx
         ret
 
-; put_pixel: bx -> SURF, cx = x, ax = y, dl = value.  Preserves bx, cx, dx.
+; put_pixel: bx -> SURF, cx = x, ax = y, ED = value.  Preserves bx, cx, edx.
 put_pixel:
         push    ax
         push    di
@@ -372,7 +482,22 @@ put_pixel:
         jne     .mem
         call    scr_putpix
         jmp     .r
-.mem:   push    cx
+.mem:
+%if PACKED
+        cmp     byte [bx+SURF.kind], SK_COLOR
+        jne     .mono
+        push    cx
+        push    edx
+        call    row_addr
+        pop     edx
+        shl     cx, ESHIFT
+        add     di, cx
+        mov     [es:di], ED
+        pop     cx
+        jmp     .r
+.mono:
+%endif
+        push    cx
         push    dx
         push    dx
         call    row_addr                ; dx = plane stride
@@ -437,8 +562,8 @@ fill_row_val:                           ; ah = value, ax high? -> value in [fill
         push    cx
         mov     di, DBUF
         mov     cx, dx
-        mov     al, [fill_val]
-        rep     stosb
+        mov     eax, [fill_val]
+        rep     STOSE
         pop     cx
         pop     ax
         mov     si, DBUF

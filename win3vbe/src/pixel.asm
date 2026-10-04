@@ -61,7 +61,7 @@ Pixel:
         pop     eax
 .gm:    shl     edx, MONOB*8
         or      eax, edx
-%if BPP = 8
+%if PALMGR
         or      eax, 0xFF000000
 %endif
         push    eax
@@ -74,7 +74,7 @@ Pixel:
         call    get_dm_colors
         mov     ax, [g_rop2]
         call    rop2_to_rop3
-%if PACKED
+%if BITROP
         call    build_rop_table
         mov     eax, [bp+px_color]
         call    phys_value
@@ -135,7 +135,7 @@ ScanLR:
         cmp     ax, [dst+SURF.height]
         jae     .oob
         push    ax
-%if BPP = 8
+%if PALMGR
         mov     byte [g_xlat], 0
         cmp     byte [dst+SURF.kind], SK_SCREEN
         jne     .c

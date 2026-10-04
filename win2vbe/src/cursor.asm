@@ -57,6 +57,9 @@ cur_draw:
         mov     di, si
         shl     di, 5
         add     di, [cur_c0]
+%if ESHIFT
+        shl     di, ESHIFT
+%endif
         add     di, cur_save
         mov     cx, [cur_x0]
         mov     dx, [cur_cw]
@@ -75,16 +78,16 @@ cur_draw:
         mov     cx, [cur_cw]
         mov     bx, di
         xor     di, di
-.px:    mov     al, [bx]
+.px:    mov     EA, [bx]
         shl     edx, 1
         jc      .keep
-        xor     al, al
+        xor     eax, eax
 .keep:  shl     ebp, 1
         jnc     .nx
-        xor     al, CMASK
-.nx:    mov     [cur_tmp+di], al
-        inc     bx
-        inc     di
+        xor     eax, WHITE
+.nx:    mov     [cur_tmp+di], EA
+        add     bx, ELEM
+        add     di, ELEM
         loop    .px
         pop     si
         mov     ax, [cur_sy]
@@ -119,6 +122,9 @@ cur_erase:
         push    si
         shl     si, 5
         add     si, [cur_c0]
+%if ESHIFT
+        shl     si, ESHIFT
+%endif
         add     si, cur_save
         mov     cx, [cur_x0]
         mov     dx, [cur_cw]

@@ -1,7 +1,11 @@
 ; ---------------------------------------------------------------------------
 ; Raster operations: a cached lookup table result = T[P,S,D] over colour indices
 ; ---------------------------------------------------------------------------
+%if NPLANES = 3
+NB              equ 3
+%else
 NB              equ 4
+%endif
 ROPTAB_SIZE     equ (1 << (3*NB))
 
 ROPF_P          equ 1
@@ -33,7 +37,7 @@ rop_flags:
 .r:     pop     cx
         ret
 
-%if PACKED
+%if BITROP
 ; ---------------------------------------------------------------------------
 ; Packed pixels: ROPs are evaluated bitwise.  For each (P,S) combination the
 ; ROP is one of four functions of D: 0, D, ~D, 1, i.e. (D & mD) ^ mC.
@@ -256,7 +260,7 @@ rop2tab:
  %assign t t+1
 %endrep
 
-%if !PACKED
+%if !BITROP
 ; make_pen_table: al = rop3, dl = pen value -> pentab[d] = result for all d
 make_pen_table:
         push    ax

@@ -5,6 +5,7 @@ https://dmitrybrant.com
 
 VBExxxx  = 8 colours  (like the Windows 2.03 VGA driver)
 VBExxxxC = 16 colours
+VBExxxxP = 256 colours (fixed palette)
 
 Install: run SETUP from the Windows setup files, choose
 "Other (requires disk provided by a hardware manufacturer)"

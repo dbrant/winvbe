@@ -2,132 +2,197 @@
 ; BitBlt, FastBorder and the shared row engine
 ; ---------------------------------------------------------------------------
 
-; get_dm_colors: es:si -> DRAWMODE (may be NULL)
+; get_dm_colors: es:si -> DRAWMODE (may be NULL).  Needs dst loaded.
+; Physical colours: pixel in the low bytes (PIXMASK), mono value in byte MONOB.
 get_dm_colors:
-        mov     byte [g_bk], CMASK
+        mov     dword [g_bk], WHITE
         mov     byte [g_bkm], 1
-        mov     byte [g_fg], 0
+        mov     dword [g_fg], 0
         mov     byte [g_fgm], 0
         mov     word [g_bkmode], OPAQUE
         mov     word [g_rop2], 13
         mov     ax, es
         or      ax, si
-        jz      .r
-        mov     al, [es:si+dmBkColor]
-        and     al, CMASK
-        mov     [g_bk], al
-        mov     al, [es:si+dmBkColor+1]
+        jz      .x
+        mov     eax, [es:si+dmBkColor]
+        and     eax, PIXMASK
+        mov     [g_bk], eax
+        mov     al, [es:si+dmBkColor+MONOB]
+        and     al, 1
         mov     [g_bkm], al
-        mov     al, [es:si+dmTextColor]
-        and     al, CMASK
-        mov     [g_fg], al
-        mov     al, [es:si+dmTextColor+1]
+        mov     eax, [es:si+dmTextColor]
+        and     eax, PIXMASK
+        mov     [g_fg], eax
+        mov     al, [es:si+dmTextColor+MONOB]
+        and     al, 1
         mov     [g_fgm], al
         mov     ax, [es:si+dmBkMode]
         mov     [g_bkmode], ax
         mov     ax, [es:si+dmRop2]
         mov     [g_rop2], ax
+.x:
+%if PALMGR
+        ; palette translation applies to colours drawn on the screen
+        mov     byte [g_xlat], 0
+        cmp     byte [pal_mod], 0
+        je      .r
+        cmp     byte [dst+SURF.kind], SK_SCREEN
+        jne     .r
+        mov     byte [g_xlat], 1
+        push    bx
+        movzx   bx, byte [g_bk]
+        mov     bl, [pal_xlat+bx]
+        mov     [g_bk], bl
+        movzx   bx, byte [g_fg]
+        mov     bl, [pal_xlat+bx]
+        mov     [g_fg], bl
+        pop     bx
+%endif
 .r:     ret
 
+%if PALMGR
+; xlat_row: si -> elements, cx = count, bx -> 256-byte table.  In place.
+xlat_row:
+        push    ax
+        push    cx
+        push    si
+        jcxz    .r
+.l:     mov     al, [si]
+        xlatb
+        mov     [si], al
+        inc     si
+        loop    .l
+.r:     pop     si
+        pop     cx
+        pop     ax
+        ret
+%endif
+
 ; build_prow: es:si -> physical brush.  CF=1 if the brush draws nothing.
-; Fills prow[64] for the destination type, g_psolid / g_pval, g_hatch.
+; Fills prow[64] (elements) for the destination type, pmask[64] (1 where the
+; brush is opaque), g_psolid / g_pval, g_hatch.
 build_prow:
         cmp     byte [es:si+BR_STYLE], 1
         jne     .ok
         stc
         ret
-.ok:    push    ax
-        push    bx
-        push    cx
-        push    dx
+.ok:    pushad
         mov     byte [g_hatch], 0
         test    byte [es:si+BR_FLAGS], BRF_HATCH
         jz      .nh
         mov     byte [g_hatch], 1
-.nh:    xor     bx, bx
-        cmp     byte [dst+SURF.kind], SK_MONO
-        jne     .color
-        ; mono destination
-.mr:    mov     al, [es:si+BR_MONO+bx]
-        push    bx
-        shl     bx, 3
-        mov     cx, 8
-.mc:    shl     al, 1
-        sbb     dl, dl
-        and     dl, 1                   ; dl = bit
-        mov     byte [pmask+bx], dl
+.nh:    xor     bx, bx                  ; pixel 0..63
+.px:    mov     di, bx
+        shr     di, 3
+        mov     cl, bl
+        and     cl, 7
+        add     di, si
+        mov     al, [es:di+BR_MONO]
+        shl     al, cl
+        mov     ah, al                  ; bit 7 = mono / hatch bit of the pixel
+        mov     di, bx
+        shl     di, ESHIFT
         cmp     byte [g_hatch], 0
-        je      .ms
-        or      dl, dl
-        mov     dl, [g_bkm]
-        jz      .ms
-        mov     dl, [es:si+BR_FGMONO]
-.ms:    mov     [prow+bx], dl
-        inc     bx
-        loop    .mc
-        pop     bx
-        inc     bx
-        cmp     bx, 8
-        jb      .mr
-        mov     al, [es:si+BR_FGMONO]
-        jmp     .sol
-.color: mov     al, [es:si+BR_COLOR+bx]
+        jne     .hatch
         mov     byte [pmask+bx], 1
-        cmp     al, 0xFF
-        jne     .cs
-        mov     byte [pmask+bx], 0
-        mov     al, [g_bk]
-.cs:    mov     [prow+bx], al
+        cmp     byte [dst+SURF.kind], SK_MONO
+        jne     .col
+        shr     ah, 7                   ; mono destination: mono pattern bit
+        movzx   eax, ah
+        jmp     .st
+.col:   push    di
+        add     di, si
+        mov     EA, [es:di+BR_COLOR]
+        pop     di
+        jmp     .st
+.hatch: shl     ah, 1                   ; CF = hatch bit
+        sbb     al, al
+        and     al, 1
+        mov     [pmask+bx], al
+        jz      .hbg
+        movzx   eax, byte [es:si+BR_FGMONO]
+        cmp     byte [dst+SURF.kind], SK_MONO
+        je      .st
+        mov     eax, [es:si+BR_FG]
+        jmp     .st
+.hbg:   movzx   eax, byte [g_bkm]
+        cmp     byte [dst+SURF.kind], SK_MONO
+        je      .st
+        mov     eax, [g_bk]
+.st:    mov     [prow+di], EA
         inc     bx
         cmp     bx, 64
-        jb      .color
-        mov     al, [es:si+BR_FG]
-.sol:   mov     [g_pval], al
+        jb      .px
+        ; solid?
         mov     byte [g_psolid], 0
+        movzx   eax, byte [es:si+BR_FGMONO]
+        cmp     byte [dst+SURF.kind], SK_MONO
+        je      .sv
+        mov     eax, [es:si+BR_FG]
+        and     eax, PIXMASK
+.sv:    mov     [g_pval], eax
         test    byte [es:si+BR_FLAGS], BRF_SOLID
-        jz      .r
+        jz      .xl
         mov     byte [g_psolid], 1
-.r:     pop     dx
-        pop     cx
-        pop     bx
-        pop     ax
+.xl:
+%if PALMGR
+        cmp     byte [g_xlat], 0        ; brush colours drawn on the screen
+        je      .done
+        cmp     byte [g_hatch], 0
+        jne     .xh                     ; (the hatch background is g_bk already)
+        mov     si, prow
+        mov     cx, 64
+        mov     bx, pal_xlat
+        call    xlat_row
+        jmp     .xs
+.xh:    xor     bx, bx                  ; hatch: translate the foreground only
+.xhl:   cmp     byte [pmask+bx], 0
+        je      .xhn
+        movzx   di, byte [prow+bx]
+        mov     al, [pal_xlat+di]
+        mov     [prow+bx], al
+.xhn:   inc     bx
+        cmp     bx, 64
+        jb      .xhl
+.xs:    movzx   bx, byte [g_pval]
+        mov     al, [pal_xlat+bx]
+        mov     [g_pval], al
+.done:
+%endif
+        popad
         clc
         ret
 
-; solid_prow: al = value -> prow filled, g_psolid = 1
+; solid_prow: eax = value -> prow filled, g_psolid = 1
 solid_prow:
+        push    eax
         push    cx
         push    di
         push    es
         push    ds
         pop     es
+        and     eax, PIXMASK
+        mov     [g_pval], eax
         mov     di, prow
         mov     cx, 64
-        rep     stosb
+        rep     STOSE
         mov     di, pmask
         mov     cx, 64
-        push    ax
         mov     al, 1
         rep     stosb
-        pop     ax
-        mov     [g_pval], al
         mov     byte [g_psolid], 1
         mov     byte [g_hatch], 0
         pop     es
         pop     di
         pop     cx
+        pop     eax
         ret
 
 ; fill_pb: ax = y.  PBUF[i] = prow[(y&7)*8 + ((g_x+i)&7)] for i < g_w
 fill_pb:
-        push    ax
-        push    bx
-        push    cx
-        push    dx
-        push    si
-        push    di
+        pushad
         and     ax, 7
-        shl     ax, 3
+        shl     ax, 3+ESHIFT
         mov     si, prow
         add     si, ax
         mov     dx, [g_x]
@@ -135,17 +200,15 @@ fill_pb:
         mov     cx, [g_w]
 .l:     mov     bx, dx
         and     bx, 7
-        mov     al, [si+bx]
-        mov     [di], al
-        inc     di
+%if ESHIFT
+        shl     bx, ESHIFT
+%endif
+        mov     EA, [si+bx]
+        mov     [di], EA
+        add     di, ELEM
         inc     dx
         loop    .l
-        pop     di
-        pop     si
-        pop     dx
-        pop     cx
-        pop     bx
-        pop     ax
+        popad
         ret
 
 ; convert_sb: apply mono<->colour conversion to SBUF[0..g_w)
@@ -153,32 +216,30 @@ convert_sb:
         mov     al, [g_conv]
         or      al, al
         jz      .r
-        push    cx
-        push    si
+        pushad
         mov     si, SBUF
         mov     cx, [g_w]
         cmp     al, 1
         jne     .c2
-        mov     dl, [g_bk]
-        mov     dh, [g_fg]
-.l1:    mov     al, dh
-        cmp     byte [si], 0
+        mov     edx, [g_bk]             ; mono 1 -> background, 0 -> text colour
+        mov     ebx, [g_fg]
+.l1:    mov     eax, ebx
+        cmp     ESZ [si], 0
         je      .s1
-        mov     al, dl
-.s1:    mov     [si], al
-        inc     si
+        mov     eax, edx
+.s1:    mov     [si], EA
+        add     si, ELEM
         loop    .l1
         jmp     .e
-.c2:    mov     dl, [g_bk]
-.l2:    xor     al, al
-        cmp     [si], dl
+.c2:    mov     edx, [g_bk]             ; colour == background -> 1, else 0
+.l2:    xor     eax, eax
+        cmp     [si], ED
         jne     .s2
-        inc     al
-.s2:    mov     [si], al
-        inc     si
+        inc     eax
+.s2:    mov     [si], EA
+        add     si, ELEM
         loop    .l2
-.e:     pop     si
-        pop     cx
+.e:     popad
 .r:     ret
 
 ; clip_blt: clip g_x/g_y/g_w/g_h (and g_sx/g_sy) to dst (and src).  CF=1 if empty.
@@ -341,18 +402,18 @@ blt_rows1:
         ; fast solid fills on the screen
         cmp     byte [dst+SURF.kind], SK_SCREEN
         jne     .gen
-        mov     ah, 0
+        xor     edx, edx
         cmp     al, 0x00
         je      .fill
-        mov     ah, CMASK
+        mov     edx, WHITE
         cmp     al, 0xFF
         je      .fill
         cmp     al, 0xF0
         jne     .gen
         cmp     byte [g_psolid], 0
         je      .gen
-        mov     ah, [g_pval]
-.fill:  mov     [fill_val], ah
+        mov     edx, [g_pval]
+.fill:  mov     [fill_val], edx
         mov     bx, dst
         mov     ax, [g_y]
         mov     cx, [g_x]
@@ -375,6 +436,10 @@ blt_rows1:
         mov     word [g_row], 0
         test    byte [g_ropf], ROPF_S
         jz      .loop
+%if BPP > 8
+        cmp     byte [g_stretch], 0
+        jne     .loop
+%endif
         call    same_surf
         jne     .loop
         mov     ax, [g_sy]
@@ -391,13 +456,35 @@ blt_rows1:
         test    byte [g_ropf], ROPF_S
         jz      .nos
         push    ax
+%if BPP > 8
+        cmp     byte [g_stretch], 0
+        je      .rd
+        call    stretch_row
+        jmp     .cv
+.rd:
+%endif
         add     ax, [g_sy]
         mov     bx, src
         mov     cx, [g_sx]
         mov     dx, [g_w]
         mov     di, SBUF
         call    read_row
-        call    convert_sb
+.cv:    call    convert_sb
+%if PALMGR
+        cmp     word [g_sxl], 0
+        je      .nx
+        push    bx
+        push    cx
+        push    si
+        mov     bx, [g_sxl]
+        mov     si, SBUF
+        mov     cx, [g_w]
+        call    xlat_row
+        pop     si
+        pop     cx
+        pop     bx
+.nx:
+%endif
         pop     ax
 .nos:   add     ax, [g_y]               ; ax = destination y
         mov     bx, dst
@@ -498,6 +585,26 @@ BitBlt:
         jne     .nosrc
         mov     byte [g_conv], 2
 .nosrc:
+%if PALMGR
+        ; colour copies between memory and the screen go through the palette
+        ; translation (memory -> screen) or its inverse (screen -> memory)
+        mov     word [g_sxl], 0
+        test    byte [g_ropf], ROPF_S
+        jz      .nsx
+        cmp     byte [g_conv], 0
+        jne     .nsx
+        cmp     byte [pal_mod], 0
+        je      .nsx
+        mov     al, [src+SURF.kind]
+        mov     ah, [dst+SURF.kind]
+        cmp     al, ah
+        je      .nsx
+        mov     word [g_sxl], pal_xlat
+        cmp     ah, SK_SCREEN
+        je      .nsx
+        mov     word [g_sxl], pal_inv
+.nsx:
+%endif
 %if DEBUG > 1
         DBG     'BB '
         DBGX    [bp+bb_rop+2]

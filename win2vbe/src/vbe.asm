@@ -1,6 +1,7 @@
 ; ---------------------------------------------------------------------------
 ; VBE.DRV - Windows 2.x display driver for the QEMU/Bochs VBE adapter
-; 8bpp banked frame buffer internally; presents a planar device to GDI.
+; 8bpp banked frame buffer.  BPP=4: presented to GDI as a planar device
+; (3 or 4 planes); BPP=8: 256 colours with a fixed palette.
 ; Dmitry Brant, 2026
 ; ---------------------------------------------------------------------------
 [map symbols out/vbe.map]

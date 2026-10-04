@@ -31,7 +31,7 @@ get_dm_colors:
         mov     ax, [es:si+dmRop2]
         mov     [g_rop2], ax
 .x:
-%if BPP = 8
+%if PALMGR
         ; palette translation applies to colours drawn on the screen
         mov     byte [g_xlat], 0
         cmp     byte [pal_mod], 0
@@ -50,7 +50,7 @@ get_dm_colors:
 %endif
 .r:     ret
 
-%if BPP = 8
+%if PALMGR
 ; xlat_row: si -> elements, cx = count, bx -> 256-byte table.  In place.
 xlat_row:
         push    ax
@@ -135,7 +135,7 @@ build_prow:
         jz      .xl
         mov     byte [g_psolid], 1
 .xl:
-%if BPP = 8
+%if PALMGR
         cmp     byte [g_xlat], 0        ; brush colours drawn on the screen
         je      .done
         cmp     byte [g_hatch], 0
@@ -470,7 +470,7 @@ blt_rows1:
         mov     di, SBUF
         call    read_row
 .cv:    call    convert_sb
-%if BPP = 8
+%if PALMGR
         cmp     word [g_sxl], 0
         je      .nx
         push    bx
@@ -585,7 +585,7 @@ BitBlt:
         jne     .nosrc
         mov     byte [g_conv], 2
 .nosrc:
-%if BPP = 8
+%if PALMGR
         ; colour copies between memory and the screen go through the palette
         ; translation (memory -> screen) or its inverse (screen -> memory)
         mov     word [g_sxl], 0

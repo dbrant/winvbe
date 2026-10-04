@@ -47,6 +47,9 @@ PIXMASK         equ 0x00FFFFFF
 %error BPP must be 4, 8, 16 or 32
 %endif
 CMASK           equ PIXMASK
+BITROP          equ PACKED              ; ROPs evaluated bitwise on pixel values (else by table)
+PALMGR          equ (BPP = 8)           ; 256 colours through the palette manager
+FIXPAL          equ 0                   ; 256 colours, fixed palette (Windows 2)
 WHITE           equ PIXMASK             ; pixel value of white (all bits set)
 %if ELEM = 1
 MONOB           equ 1

@@ -185,7 +185,7 @@ cur_osp         dd      0
 cur_oss         dw      0
 
                 align   4
-%if PACKED
+%if BITROP
 rop_m           times 8 dd 0            ; bitwise ROP: D-function masks per (P,S)
 rop_acc         dd      0
 rop_cnt         dw      0
@@ -255,7 +255,7 @@ data_init_end:
 cur_save        times 1024*ELEM db 0
 cur_stack       times 2048 db 0         ; private stack for interrupt-time cursor redraws
 cur_stack_top:
-%if !PACKED
+%if !BITROP
 roptab          times ROPTAB_SIZE db 0
 %endif
 gout            times 256 db 0          ; GetDIBits: element -> DIB index

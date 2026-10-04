@@ -9,13 +9,22 @@ gdiinfo:
         dw      1                       ; dpTechnology = DT_RASDISPLAY
         dw      HSIZE, VSIZE            ; dpHorzSize, dpVertSize (mm)
         dw      XRES, YRES              ; dpHorzRes, dpVertRes
+%if PACKED
+        dw      BPP                     ; dpBitsPixel
+        dw      1                       ; dpPlanes
+%else
         dw      1                       ; dpBitsPixel
         dw      NPLANES                 ; dpPlanes
+%endif
         dw      -1                      ; dpNumBrushes
         dw      NCOLORS*5               ; dpNumPens
         dw      0                       ; futureuse
         dw      0                       ; dpNumFonts
+%if BPP = 8
+        dw      256                     ; dpNumColors
+%else
         dw      NCOLORS                 ; dpNumColors
+%endif
         dw      PDEV_SIZE               ; dpDEVICEsize
         dw      0                       ; dpCurves
         dw      0x22                    ; dpLines: polyline, styled
@@ -49,8 +58,13 @@ PDEV_SIZE equ 0x23
 pdevice:
         dw      0xA000                  ; bmType (non-zero: device)
         dw      XRES, YRES
+%if PACKED
+        dw      XRES*ELEM               ; bmWidthBytes
+        db      1, BPP
+%else
         dw      XRES/8                  ; bmWidthBytes
         db      NPLANES, 1
+%endif
         dw      0, 0xA000               ; bmBits
         dd      0                       ; bmWidthPlanes
         dd      0                       ; bmlpPDevice
@@ -150,7 +164,8 @@ Disable:
         mov     ax, -1
         EPILOG  4
 
-%if NPLANES = 3
+%if BPP = 8
+%elif NPLANES = 3
 palette6:                               ; 6-bit DAC values (EGA bright colours)
         db       0,  0,  0
         db      63, 21, 21

@@ -13,15 +13,13 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, HERE)
 import mkne
 
-# (xres, yres, planes, name)
-VARIANTS = [
-    (800, 600, 3, 'VBE800'), (800, 600, 4, 'VBE800C'),
-    (1024, 768, 3, 'VBE1024'), (1024, 768, 4, 'VBE1024C'),
-    (1152, 864, 3, 'VBE1152'), (1152, 864, 4, 'VBE1152C'),
-    (1280, 1024, 3, 'VBE1280'), (1280, 1024, 4, 'VBE1280C'),
-    (1600, 1200, 3, 'VBE1600'), (1600, 1200, 4, 'VBE1600C'),
-    (1920, 1080, 3, 'VBE1920'), (1920, 1080, 4, 'VBE1920C'),
-]
+# colour variants: name suffix -> (bits per pixel, planes, colours)
+DEPTHS = [('', 4, 3, 8), ('C', 4, 4, 16), ('P', 8, 1, 256)]
+RESOLUTIONS = [(800, 600), (1024, 768), (1152, 864), (1280, 1024), (1600, 1200), (1920, 1080)]
+
+# (xres, yres, (bpp, planes, colours), name)
+VARIANTS = [(x, y, (bpp, planes, colors), 'VBE%d%s' % (x, suffix))
+            for x, y in RESOLUTIONS for suffix, bpp, planes, colors in DEPTHS]
 
 
 README_TXT = r"""VESA/VBE display drivers for Windows 2.x
@@ -31,6 +29,7 @@ https://dmitrybrant.com
 
 VBExxxx  = 8 colours  (like the Windows 2.03 VGA driver)
 VBExxxxC = 16 colours
+VBExxxxP = 256 colours (fixed palette)
 
 Install: run SETUP from the Windows setup files, choose
 "Other (requires disk provided by a hardware manufacturer)"
@@ -55,12 +54,12 @@ def find_template(args):
         return local
 
 
-def build_one(nasm, template, outdir, x, y, planes, name, grb, lgo, debug=0):
-    colors = 8 if planes == 3 else 16
+def build_one(nasm, template, outdir, x, y, depth, name, grb, lgo, debug=0):
+    bpp, planes, colors = depth
     desc = 'DISPLAY : 100, 96, 96 : VESA/VBE %dx%d (%d colors)' % (x, y, colors)
     tmp = os.path.join(outdir, name + '.bin')
     subprocess.check_call([nasm, '-f', 'bin', '-DXRES=%d' % x, '-DYRES=%d' % y,
-                           '-DNPLANES=%d' % planes, '-DDEBUG=%d' % debug, '-DFIXED=0',
+                           '-DBPP=%d' % bpp, '-DNPLANES=%d' % planes, '-DDEBUG=%d' % debug, '-DFIXED=0',
                            '-o', tmp, 'vbe.asm'], cwd=HERE)
     mapfile = os.path.join(HERE, 'out', 'vbe.map')
     m = re.search(r'^\s*([0-9A-F]+)\s+[0-9A-F]+\s+code_end\s*$', open(mapfile).read(), re.M)
@@ -70,7 +69,7 @@ def build_one(nasm, template, outdir, x, y, planes, name, grb, lgo, debug=0):
     os.remove(tmp)
     shutil.copyfile(grb, os.path.join(outdir, name + '.GRB'))
     shutil.copyfile(lgo, os.path.join(outdir, name + '.LGO'))
-    print('%-9s %4dx%-4d %2d colors  code %5d  data %5d' % (name, x, y, colors, code, total - code))
+    print('%-9s %4dx%-4d %3d colors  code %5d  data %5d' % (name, x, y, colors, code, total - code))
 
 
 def main():
@@ -83,6 +82,7 @@ def main():
     ap.add_argument('--out', default=os.path.join(HERE, 'drivers'))
     ap.add_argument('--debug', type=int, default=0)
     ap.add_argument('--floppy', help='also write a 1.44 MB floppy image with all drivers')
+    ap.add_argument('--only', help='build just these variants (comma-separated, e.g. VBE1024P)')
     args = ap.parse_args()
     template = find_template(args)
     tdir = os.path.dirname(os.path.abspath(template))
@@ -93,8 +93,10 @@ def main():
             sys.exit('%s not found (copy it from the Windows 2 setup files)' % f)
     os.makedirs(args.out, exist_ok=True)
     os.makedirs(os.path.join(HERE, 'out'), exist_ok=True)
-    for x, y, p, name in VARIANTS:
-        build_one(args.nasm, template, args.out, x, y, p, name, grb, lgo, args.debug)
+    only = args.only.upper().split(',') if args.only else None
+    variants = [v for v in VARIANTS if not only or v[3] in only]
+    for x, y, d, name in variants:
+        build_one(args.nasm, template, args.out, x, y, d, name, grb, lgo, args.debug)
     vbelist = os.path.join(args.out, 'VBELIST.COM')
     subprocess.check_call([args.nasm, '-f', 'bin', '-o', vbelist, 'vbelist.asm'], cwd=HERE)
     readme = os.path.join(args.out, 'README.TXT')
@@ -102,7 +104,7 @@ def main():
     if args.floppy:
         import mkfloppy
         files = [readme, vbelist] + [os.path.join(args.out, n + ext) for ext in ('.DRV', '.GRB', '.LGO')
-                            for _, _, _, n in VARIANTS]
+                            for _, _, _, n in variants]
         mkfloppy.build(args.floppy, files)
         print('floppy image:', args.floppy)
 

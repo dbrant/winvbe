@@ -52,14 +52,14 @@ ExtTextOut:
         call    set_clip
         call    text_setup_font
         ; colours for the destination type
-        mov     al, [g_fg]
-        mov     ah, [g_bk]
+        mov     eax, [g_fg]
+        mov     edx, [g_bk]
         cmp     byte [dst+SURF.kind], SK_MONO
         jne     .cc
-        mov     al, [g_fgm]
-        mov     ah, [g_bkm]
-.cc:    mov     [tx_fg], al
-        mov     [tx_bk], ah
+        movzx   eax, byte [g_fgm]
+        movzx   edx, byte [g_bkm]
+.cc:    mov     [tx_fg], eax
+        mov     [tx_bk], edx
         ; opaque rectangle
         test    word [bp+et_opts], ETO_OPAQUE
         jz      .noopq
@@ -73,7 +73,7 @@ ExtTextOut:
         mov     dx, [es:si+6]
         call    clip_rect
         jc      .noopq
-        mov     al, [tx_bk]
+        mov     eax, [tx_bk]
         call    fill_grect
 .noopq: test    word [bp+et_opts], ETO_CLIPPED
         jz      .nocl
@@ -136,9 +136,9 @@ ExtTextOut:
         xor     dx, dx
 .ret:   EPILOG  0x28
 
-; fill_grect: fill g_x,g_y,g_w,g_h of dst with value al (exclusion included)
+; fill_grect: fill g_x,g_y,g_w,g_h of dst with value eax (exclusion included)
 fill_grect:
-        mov     [fill_val], al
+        mov     [fill_val], eax
         mov     byte [g_excl], 0
         cmp     byte [dst+SURF.kind], SK_SCREEN
         jne     .ne
@@ -324,18 +324,20 @@ text_row:
         pop     es
         mov     di, DBUF
         mov     cx, dx
-        mov     al, [tx_bk]
-        rep     stosb
+        mov     eax, [tx_bk]
+        rep     STOSE
         pop     es
         pop     cx
 .mix:   push    cx
         mov     cx, dx
         xor     di, di
-        mov     al, [tx_fg]
+        mov     si, DBUF
+        mov     eax, [tx_fg]
 .m:     cmp     byte [SBUF+di], 0
         je      .mn
-        mov     [DBUF+di], al
+        mov     [si], EA
 .mn:    inc     di
+        add     si, ELEM
         loop    .m
         pop     cx
         mov     ax, [tx_row]

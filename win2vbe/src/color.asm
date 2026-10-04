@@ -1,15 +1,51 @@
 ; ---------------------------------------------------------------------------
 ; Colours, ColorInfo, RealizeObject
+;
+; Physical colours are dwords: the pixel (element) value in the low bytes and
+; the mono value (0/1) in byte MONOB.  16 colours: index | mono<<8.
+; 256 colours: palette index | mono<<8 | 0xFF000000.  HiColor: 16-bit pixel
+; | mono<<16.  TrueColor: 0x00RRGGBB | mono<<24.
 ; ---------------------------------------------------------------------------
 BRF_SOLID       equ 2
 
-; rgb_to_phys: al=R ah=G dl=B  ->  bl = colour index, bh = mono value
-; preserves ax, cx, dx, si, di
+; cref_to_phys: eax = COLORREF -> ebx = physical colour.
+; 256 colours: a palette index (high byte 0xFF, or 0x01 as GDI sometimes
+; passes PALETTEINDEX) is used as it is.
+cref_to_phys:
+%if PALMGR
+        push    eax
+        shr     eax, 24
+        cmp     al, 0xFF
+        je      .idx
+        cmp     al, 0x01
+        je      .idx
+        pop     eax
+%endif
+        push    ax
+        push    dx
+        push    eax
+        shr     eax, 16
+        mov     dl, al
+        pop     eax
+        call    rgb_to_phys
+        pop     dx
+        pop     ax
+        ret
+%if PALMGR
+.idx:   pop     eax
+        movzx   ebx, al
+        call    phys_mono               ; mono value from the palette colour
+        ret
+%endif
+
+; rgb_to_phys: al=R ah=G dl=B  ->  ebx = physical colour
+; preserves eax, ecx, edx, esi, edi
 rgb_to_phys:
-        push    cx
+        push    ecx
         push    si
-%if NPLANES = 3
-        xor     bl, bl
+        push    eax
+%if BPP = 4 && NPLANES = 3
+        xor     ebx, ebx                ; 8 colours: one bit per component
         test    al, 0x80
         jz      .g
         or      bl, 1
@@ -20,24 +56,138 @@ rgb_to_phys:
         jz      .m
         or      bl, 4
 .m:
+%elif BPP = 4
+        call    nearest16               ; bl = index
+        movzx   ebx, bl
+%elif FIXPAL
+        call    nearest256              ; bl = palette index
+        movzx   ebx, bl
+%elif BPP = 8
+        call    nearest16               ; bl = static colour number
+        movzx   ebx, bl
+        movzx   ebx, byte [cs:static_idx+bx]
+        or      ebx, 0xFF000000
+%elif BPP = 16
+        movzx   ebx, al                 ; red
+        shr     bx, 3
+        movzx   ecx, ah                 ; green
+        cmp     byte [pix_g6], 0
+        je      .g5
+        shl     bx, 6
+        shr     cx, 2
+        jmp     .gb
+.g5:    shl     bx, 5
+        shr     cx, 3
+.gb:    or      bx, cx
+        shl     bx, 5
+        movzx   cx, dl                  ; blue
+        shr     cx, 3
+        or      bx, cx
 %else
-        call    nearest16
+        movzx   ebx, al                 ; 0x00RRGGBB
+        shl     ebx, 8
+        mov     bl, ah
+        shl     ebx, 8
+        mov     bl, dl
 %endif
+        ; mono: white if R+G+B >= 382
         movzx   cx, al
         movzx   si, ah
         add     cx, si
         movzx   si, dl
         add     cx, si
-        xor     bh, bh
         cmp     cx, 382
         jb      .r
-        inc     bh
-.r:     pop     si
-        pop     cx
+        or      ebx, 1 << (MONOB*8)
+.r:     pop     eax
+        pop     si
+        pop     ecx
         ret
 
-%if NPLANES = 4
-; nearest16: al=R ah=G dl=B -> bl = index of nearest palette colour
+%if BPP = 8
+; phys_mono: ebx = physical colour (palette index in bl) -> mono bit set in
+; ebx from the palette entry's brightness, 0xFF marker in the high byte
+phys_mono:
+        push    ax
+        push    cx
+        push    si
+        movzx   si, bl
+        shl     si, 2
+        movzx   cx, byte [pal_rgb+si]
+        movzx   ax, byte [pal_rgb+si+1]
+        add     cx, ax
+        movzx   ax, byte [pal_rgb+si+2]
+        add     cx, ax
+        and     ebx, 0xFF
+        or      ebx, 0xFF000000
+        cmp     cx, 382
+        jb      .r
+        or      ebx, 0x100
+.r:     pop     si
+        pop     cx
+        pop     ax
+        ret
+
+%if PALMGR
+; palette indices of the 20 static colours
+static_idx:
+        db      0, 1, 2, 3, 4, 5, 6, 7, 8, 9
+        db      246, 247, 248, 249, 250, 251, 252, 253, 254, 255
+%endif
+%endif
+
+%if FIXPAL
+; nearest256: al=R ah=G dl=B -> bl = index of the nearest colour of the fixed
+; palette (pal_rgb).  Weighted distance 3:4:2.
+nearest256:
+        push    eax
+        push    ecx
+        push    edx
+        push    esi
+        push    edi
+        push    ebp
+        movzx   ecx, al
+        movzx   esi, ah
+        movzx   edi, dl
+        mov     ebp, 0x7FFFFFFF         ; best distance
+        xor     bx, bx                  ; entry
+        mov     [n256_best], bl
+.l:     push    bx
+        shl     bx, 2
+        movzx   eax, byte [pal_rgb+bx]
+        sub     eax, ecx
+        imul    eax, eax
+        imul    eax, eax, 3
+        movzx   edx, byte [pal_rgb+bx+1]
+        sub     edx, esi
+        imul    edx, edx
+        shl     edx, 2
+        add     eax, edx
+        movzx   edx, byte [pal_rgb+bx+2]
+        sub     edx, edi
+        imul    edx, edx
+        shl     edx, 1
+        add     eax, edx
+        pop     bx
+        cmp     eax, ebp
+        jae     .n
+        mov     ebp, eax
+        mov     [n256_best], bl
+.n:     inc     bx
+        cmp     bx, 256
+        jb      .l
+        mov     bl, [n256_best]
+        pop     ebp
+        pop     edi
+        pop     esi
+        pop     edx
+        pop     ecx
+        pop     eax
+        ret
+%endif
+
+%if BPP <= 8
+; nearest16: al=R ah=G dl=B -> bl = number of the nearest colour in rgbtab
 nearest16:
         push    ecx
         push    esi
@@ -53,6 +203,11 @@ nearest16:
 
 ; nearest16x: ecx=R esi=G edi=B (signed 32-bit) -> bl.  Weighted distance 3:4:2.
 nearest16x:
+        mov     word [nt_tab], rgbtab
+        mov     byte [nt_n], NCOLORS
+%endif
+; nearest_tabx: as nearest16x, over [nt_n] colours at cs:[nt_tab]
+nearest_tabx:
         push    eax
         push    edx
         push    ebp
@@ -61,16 +216,17 @@ nearest16x:
 .l:     push    bx
         movzx   bx, bh
         imul    bx, bx, 3
-        movzx   eax, byte [cs:rgbtab+bx]
+        add     bx, [nt_tab]
+        movzx   eax, byte [cs:bx]
         sub     eax, ecx
         imul    eax, eax
         imul    eax, eax, 3
-        movzx   edx, byte [cs:rgbtab+bx+1]
+        movzx   edx, byte [cs:bx+1]
         sub     edx, esi
         imul    edx, edx
         shl     edx, 2
         add     eax, edx
-        movzx   edx, byte [cs:rgbtab+bx+2]
+        movzx   edx, byte [cs:bx+2]
         sub     edx, edi
         imul    edx, edx
         shl     edx, 1
@@ -81,17 +237,33 @@ nearest16x:
         mov     ebp, eax
         mov     bl, bh
 .n:     inc     bh
-        cmp     bh, 16
+        cmp     bh, [nt_n]
         jb      .l
         pop     ebp
         pop     edx
         pop     eax
         ret
-%endif
 
-%if NPLANES = 4
-; dither16: al=R ah=G dl=B -> d16_plan[64] = palette indices sorted by luminance
-; (Knoll pattern dithering: error-accumulating nearest-colour picks)
+; nearest_vga: al=R ah=G dl=B -> bl = nearest of the 16 VGA colours (vga16)
+nearest_vga:
+        push    ecx
+        push    esi
+        push    edi
+        movzx   ecx, al
+        movzx   esi, ah
+        movzx   edi, dl
+        mov     word [nt_tab], vga16
+        mov     byte [nt_n], 16
+        call    nearest_tabx
+        pop     edi
+        pop     esi
+        pop     ecx
+        ret
+
+%if BPP <= 8
+
+; dither16: al=R ah=G dl=B -> d16_plan[64] = colour numbers sorted by
+; luminance (Knoll pattern dithering: error-accumulating nearest-colour picks)
 dither16:
         pushad
         movzx   ecx, al
@@ -178,12 +350,32 @@ dither16:
         ret
 %endif
 
-; rgb of each colour index (8-bit components)
+; rgb of each colour number (8-bit components): the 16 VGA colours, or the
+; 20 static colours of the 256-colour palette (also used for HiColor /
+; TrueColor brushes)
 rgbtab:
-%if NPLANES = 3
+%if BPP = 4 && NPLANES = 3
         db        0,  0,  0,  255,  0,  0,    0,255,  0,  255,255,  0
         db        0,  0,255,  255,  0,255,    0,255,255,  255,255,255
-%else                                   ; Windows VGA order: bit 0 red, 1 green, 2 blue, 3 bright
+vga16:                                  ; the 16 VGA colours
+        db        0,  0,  0,  128,  0,  0,    0,128,  0,  128,128,  0
+        db        0,  0,128,  128,  0,128,    0,128,128,  192,192,192
+        db      128,128,128,  255,  0,  0,    0,255,  0,  255,255,  0
+        db        0,  0,255,  255,  0,255,    0,255,255,  255,255,255
+%elif BPP = 4 || FIXPAL
+vga16:
+        db        0,  0,  0,  128,  0,  0,    0,128,  0,  128,128,  0
+        db        0,  0,128,  128,  0,128,    0,128,128,  192,192,192
+        db      128,128,128,  255,  0,  0,    0,255,  0,  255,255,  0
+        db        0,  0,255,  255,  0,255,    0,255,255,  255,255,255
+%else
+        db        0,  0,  0,  128,  0,  0,    0,128,  0,  128,128,  0
+        db        0,  0,128,  128,  0,128,    0,128,128,  192,192,192
+        db      192,220,192,  164,200,240
+        db      255,251,240,  160,160,164,  128,128,128,  255,  0,  0
+        db        0,255,  0,  255,255,  0,    0,  0,255,  255,  0,255
+        db        0,255,255,  255,255,255
+vga16:                                  ; the 16 VGA colours (4 bpp DIBs)
         db        0,  0,  0,  128,  0,  0,    0,128,  0,  128,128,  0
         db        0,  0,128,  128,  0,128,    0,128,128,  192,192,192
         db      128,128,128,  255,  0,  0,    0,255,  0,  255,255,  0
@@ -194,32 +386,115 @@ rgbtab:
 is_mono_dev:
         cmp     word [es:si+bmType], 0
         jne     .no
+%if PACKED
         cmp     word [es:si+bmPlanes], 0x0101
+%else
+        cmp     byte [es:si+bmPlanes], 1
+%endif
         ret
-.no:    or      si, si                  ; ZF=0 (si is never 0... force NZ)
-        push    ax
+.no:    push    ax
         mov     al, 1
         or      al, al
         pop     ax
         ret
 
-; phys_to_rgb: bl = index, bh = mono, es:si = device -> dx:ax = RGB
+; phys_to_rgb: ebx = physical colour, es:si = device -> dx:ax = RGB
 phys_to_rgb:
         call    is_mono_dev
         jne     .color
         xor     ax, ax
         xor     dx, dx
-        or      bh, bh
+        test    ebx, 1 << (MONOB*8)
         jz      .r
         mov     ax, 0xFFFF
         mov     dx, 0x00FF
 .r:     ret
-.color: push    bx
+.color:
+        push    ebx
+%if BPP = 4
         and     bx, CMASK
         imul    bx, bx, 3
         mov     ax, [cs:rgbtab+bx]
         movzx   dx, byte [cs:rgbtab+bx+2]
-        pop     bx
+%elif BPP = 8
+        movzx   bx, bl
+        shl     bx, 2
+        mov     ax, [pal_rgb+bx]
+        movzx   dx, byte [pal_rgb+bx+2]
+%elif BPP = 16
+        call    pix16_rgb
+%else
+        mov     al, bl                  ; 0x00RRGGBB -> R in al, G ah, B dl
+        mov     dl, al
+        mov     ah, bh
+        shr     ebx, 16
+        mov     al, bl
+        xor     dh, dh
+%endif
+        pop     ebx
+        ret
+
+%if BPP = 16
+; pix16_rgb: bx = 16-bit pixel -> al=R ah=G dl=B, dh=0 (components widened
+; by replicating their top bits)
+pix16_rgb:
+        push    cx
+        mov     dl, bl                  ; blue: bits 0-4
+        and     dl, 0x1F
+        shl     dl, 3
+        mov     cl, dl
+        shr     cl, 5
+        or      dl, cl
+        xor     dh, dh
+        mov     cx, bx
+        cmp     byte [pix_g6], 0
+        je      .g5
+        shr     cx, 5                   ; green: 6 bits
+        and     cl, 0x3F
+        shl     cl, 2
+        mov     ah, cl
+        shr     cl, 6
+        or      ah, cl
+        mov     cx, bx
+        shr     cx, 11                  ; red: bits 11-15
+        jmp     .r
+.g5:    shr     cx, 5                   ; green: 5 bits
+        and     cl, 0x1F
+        shl     cl, 3
+        mov     ah, cl
+        shr     cl, 5
+        or      ah, cl
+        mov     cx, bx
+        shr     cx, 10                  ; red: bits 10-14
+.r:     and     cl, 0x1F
+        shl     cl, 3
+        mov     al, cl
+        shr     cl, 5
+        or      al, cl
+        pop     cx
+        ret
+%endif
+
+; elem_mono: eax = pixel value -> al = mono value (0/1) by brightness
+elem_mono:
+        push    ebx
+        push    dx
+%if BPP = 4
+        and     al, CMASK
+%endif
+        mov     ebx, eax
+        call    phys_to_rgb.color       ; (needs no device)
+        movzx   bx, al
+        movzx   ax, ah
+        add     bx, ax
+        movzx   ax, dl
+        add     bx, ax
+        xor     eax, eax
+        cmp     bx, 382
+        jb      .r
+        inc     ax
+.r:     pop     dx
+        pop     ebx
         ret
 
 ; ---------------------------------------------------------------------------
@@ -231,15 +506,12 @@ ColorInfo:
         mov     ax, es
         or      ax, di
         jz      .fromphys
-        mov     ax, [bp+10]
-        mov     dl, [bp+12]
-        call    rgb_to_phys
-        mov     [es:di], bl
-        mov     [es:di+1], bh
-        mov     word [es:di+2], 0
+        mov     eax, [bp+10]
+        call    cref_to_phys
+        mov     [es:di], ebx
         jmp     .ret
 .fromphys:
-        mov     bx, [bp+10]
+        mov     ebx, [bp+10]
 .ret:   les     si, [bp+14]
         call    phys_to_rgb
         EPILOG  12
@@ -282,12 +554,9 @@ realize_pen:
         push    ds
         lds     si, [bp+ro_lpIn]
         mov     cx, [si]                ; style
-        mov     ax, [si+6]
-        mov     dl, [si+8]
-        call    rgb_to_phys
-        mov     [es:di+PEN_COLOR], bl
-        mov     [es:di+PEN_COLOR+1], bh
-        mov     word [es:di+PEN_COLOR+2], 0
+        mov     eax, [si+6]
+        call    cref_to_phys
+        mov     [es:di+PEN_COLOR], ebx
         cmp     cx, 5
         je      .st
         jb      .w
@@ -313,8 +582,7 @@ realize_brush:
         je      .pattern
         ; ---- solid (dithered) brush
         mov     byte [es:di+BR_STYLE], 0
-        mov     ax, [si+2]
-        mov     dl, [si+4]
+        mov     eax, [si+2]
         pop     ds
         call    dither_brush
         jmp     .rotate
@@ -325,11 +593,14 @@ realize_brush:
 .hatch:
         mov     byte [es:di+BR_STYLE], 2
         mov     byte [es:di+BR_FLAGS], BRF_HATCH
-        mov     ax, [si+2]
-        mov     dl, [si+4]
-        call    rgb_to_phys
-        mov     [es:di+BR_FG], bl
-        mov     [es:di+BR_FGMONO], bh
+        mov     eax, [si+2]
+        call    cref_to_phys
+        mov     eax, ebx
+        and     eax, PIXMASK
+        mov     [es:di+BR_FG], eax
+        shr     ebx, MONOB*8
+        and     bl, 1
+        mov     [es:di+BR_FGMONO], bl
         mov     bx, [si+6]              ; hatch style
         pop     ds
         cmp     bx, 5
@@ -340,27 +611,35 @@ realize_brush:
         xor     dx, dx                  ; dx = row
 .hrow:  mov     al, [cs:si]
         mov     bx, dx
-        mov     [es:di+BR_MONO+bx], al
-        shl     bx, 3
-        mov     cx, 8
-.hpix:  mov     ah, 0xFF                ; background placeholder
-        shl     al, 1
-        jnc     .hbg
-        mov     ah, [es:di+BR_FG]
-.hbg:   mov     [es:di+BR_COLOR+bx], ah
-        inc     bx
-        loop    .hpix
+        mov     [es:di+BR_MONO+bx], al  ; the hatch bits
         inc     si
         inc     dx
         cmp     dx, 8
         jb      .hrow
+        push    di                      ; colour pattern: foreground everywhere
+        add     di, BR_COLOR            ; (build_prow takes the hatch bits)
+        mov     cx, 64
+        mov     eax, [es:di+BR_FG-BR_COLOR]
+        rep     STOSE
+        pop     di
         jmp     .rotate
 .pattern:
         mov     byte [es:di+BR_STYLE], 3
         lds     si, [si+2]              ; lbColor is a far pointer to the BITMAP
-        mov     dx, [si+bmWidthBytes]
-        mov     cx, [si+bmWidthPlanes]
-        mov     al, [si+bmPlanes]
+        mov     dx, [si+bmWidthBytes]   ; row stride (all planes)
+        mov     cx, dx                  ; plane stride: planes are interleaved
+        mov     al, [si+bmPlanes]       ; by scan line
+%if PACKED
+        cmp     word [si+bmPlanes], 0x0101
+        je      .pm
+        mov     al, 0xFF                ; packed colour pattern
+.pm:
+%else
+        push    ax
+        movzx   ax, al
+        imul    dx, ax
+        pop     ax
+%endif
         push    ds
         mov     ds, [cs:dataseg]
         mov     [pat_planes], al
@@ -369,7 +648,7 @@ realize_brush:
         push    di
         push    cx
         add     di, BR_COLOR
-        mov     cx, 32
+        mov     cx, 64*ELEM/2
         xor     ax, ax
         rep     stosw
         pop     cx
@@ -389,7 +668,8 @@ realize_brush:
         ret
 
 ; pattern_row: ds:si -> plane 0 byte of the row, cx = plane stride,
-; bx = row number, es:di -> brush.  Uses [pat_planes] (in our DGROUP).
+; bx = row number, es:di -> brush.  Uses [pat_planes] (in our DGROUP):
+; 1 = mono, 0xFF = packed colour, else planar colour.
 pattern_row:
         push    ax
         push    bx
@@ -409,15 +689,34 @@ pattern_row:
         mov     [es:di+BR_MONO+bx], al
         mov     bx, dx
         mov     ah, 8
-.m:     shl     al, 1
-        sbb     cl, cl
-        and     cl, CMASK
-        mov     [es:di+BR_COLOR+bx], cl
+.m:     push    eax
+        shl     al, 1
+        sbb     eax, eax
+        and     eax, WHITE
+        push    bx
+        shl     bx, ESHIFT
+        mov     [es:di+BR_COLOR+bx], EA
+        pop     bx
+        pop     eax
+        shl     al, 1
         inc     bx
         dec     ah
         jnz     .m
         jmp     .r
-.color: ; colour pattern: combine the bitmap's planes
+.color:
+%if PACKED
+        push    cx                      ; packed: copy 8 pixels
+        push    di
+        mov     ax, dx
+        shl     ax, ESHIFT
+        add     di, ax
+        add     di, BR_COLOR
+        mov     cx, 8*ELEM
+        rep     movsb
+        pop     di
+        pop     cx
+%else
+        ; planar colour pattern: combine the bitmap's planes
         push    bp
         push    ax                      ; al = number of planes
         mov     bp, 1                   ; plane bit
@@ -457,12 +756,16 @@ pattern_row:
 .c16:
 %endif
         pop     bp
-        ; mono version: pixel == white -> 1 (approximate with colour index CMASK)
+%endif
+        ; mono version: pixel == white -> 1
         mov     bx, dx
         xor     al, al
         mov     ah, 8
 .mm:    shl     al, 1
-        cmp     byte [es:di+BR_COLOR+bx], CMASK
+        push    bx
+        shl     bx, ESHIFT
+        cmp     ESZ [es:di+BR_COLOR+bx], WHITE
+        pop     bx
         jne     .mz
         or      al, 1
 .mz:    inc     bx
@@ -478,10 +781,23 @@ pattern_row:
         pop     ax
         ret
 
-; dither_brush: al=R ah=G dl=B, es:di -> brush.  DS = DGROUP.
+; dither_brush: eax = COLORREF, es:di -> brush.  DS = DGROUP.
 dither_brush:
-        push    ax
-        push    dx
+        push    eax
+        push    edx
+        mov     [db_cref], eax
+        push    eax
+        shr     eax, 16
+        mov     dl, al                  ; dl = B
+        pop     eax                     ; al = R, ah = G
+%if PALMGR
+        mov     ebx, [db_cref]          ; a palette index: a solid brush
+        shr     ebx, 24
+        cmp     bl, 0xFF
+        je      .solid
+        cmp     bl, 0x01
+        je      .solid
+%endif
         ; levels 0..64
         movzx   cx, al
         call    level
@@ -504,17 +820,21 @@ dither_brush:
         shr     cx, 8
         call    level
         mov     [lvl_l], cl
-%if NPLANES = 4
-        pop     dx
-        pop     ax
-        push    ax
-        push    dx
-        call    dither16                ; -> d16_plan
+%if BPP = 4 && NPLANES = 3
+%elif FIXPAL
+        call    fixpal_plan             ; -> d16_plan (palette indices)
+%elif BPP <= 8
+        call    dither16                ; -> d16_plan (colour numbers)
+%else
+        call    rgb_to_phys             ; HiColor / TrueColor: no dithering
+        and     ebx, PIXMASK
+        mov     [d16_solid], ebx
 %endif
         xor     bx, bx
 .l:     mov     al, [cs:bayer+bx]
-%if NPLANES = 3
-        xor     ah, ah
+        push    bx
+%if BPP = 4 && NPLANES = 3
+        xor     ah, ah                  ; one bit per component
         cmp     [lvl_r], al
         jbe     .1
         or      ah, 1
@@ -524,15 +844,24 @@ dither_brush:
 .2:     cmp     [lvl_b], al
         jbe     .3
         or      ah, 4
-.3:
-%else
-        push    bx
+.3:     movzx   eax, ah
+%elif BPP = 4 || FIXPAL
         movzx   bx, al
-        mov     ah, [d16_plan+bx]
-        pop     bx
+        movzx   eax, byte [d16_plan+bx]
+%elif BPP = 8
+        movzx   bx, al
+        movzx   bx, byte [d16_plan+bx]
+        movzx   eax, byte [cs:static_idx+bx]
+%else
+        mov     eax, [d16_solid]
 %endif
-        mov     [es:di+BR_COLOR+bx], ah
+        pop     bx
+        push    bx
+        shl     bx, ESHIFT
+        mov     [es:di+BR_COLOR+bx], EA
+        pop     bx
         ; mono
+        mov     al, [cs:bayer+bx]
         shl     dh, 1
         cmp     [lvl_l], al
         jbe     .4
@@ -550,9 +879,106 @@ dither_brush:
 .5:     inc     bx
         cmp     bx, 64
         jb      .l
-        pop     dx
-        pop     ax
+        pop     edx
+        pop     eax
         ret
+%if PALMGR
+.solid: mov     eax, [db_cref]
+        call    cref_to_phys
+        push    di
+        push    cx
+        add     di, BR_COLOR
+        mov     al, bl
+        mov     cx, 64
+        rep     stosb
+        pop     cx
+        pop     di
+        shr     ebx, 8                  ; mono pattern: all set or all clear
+        and     bl, 1
+        neg     bl
+        mov     dword [es:di+BR_MONO], 0
+        mov     dword [es:di+BR_MONO+4], 0
+        or      bl, bl
+        jz      .sd
+        mov     dword [es:di+BR_MONO], 0xFFFFFFFF
+        mov     dword [es:di+BR_MONO+4], 0xFFFFFFFF
+.sd:    pop     edx
+        pop     eax
+        ret
+%endif
+
+%if FIXPAL
+; fixpal_plan: al=R ah=G dl=B -> d16_plan[t] = palette index for Bayer value t
+; (0..63): the nearest palette colour if it is (almost) exact, else an ordered
+; dither between the two nearest levels of the colour cube on each component.
+fixpal_plan:
+        pushad
+        call    nearest256              ; bl
+        cmp     byte [pal_dirty], 0     ; palette changed by an application:
+        jne     .solid                  ; the cube may be gone, no dithering
+        movzx   si, bl
+        shl     si, 2
+        mov     [fq_c], al              ; close enough on every component?
+        mov     [fq_c+1], ah
+        mov     [fq_c+2], dl
+        add     si, pal_rgb
+        xor     di, di
+.a:     movzx   cx, byte [si]
+        movzx   bp, byte [fq_c+di]
+        sub     cx, bp
+        jns     .a1
+        neg     cx
+.a1:    cmp     cx, 8
+        ja      .cube
+        inc     si
+        inc     di
+        cmp     di, 3
+        jb      .a
+.solid: mov     al, bl                  ; solid
+        mov     di, d16_plan
+        push    es
+        push    ds
+        pop     es
+        mov     cx, 64
+        rep     stosb
+        pop     es
+        popad
+        ret
+.cube:  ; per component: level = v*5/255, fraction (0..63) = remainder*64/255
+        xor     si, si
+.c:     movzx   ax, byte [fq_c+si]
+        imul    ax, ax, 5
+        mov     cl, 255
+        div     cl                      ; al = level, ah = remainder
+        mov     [fq_l+si], al
+        movzx   ax, ah
+        shl     ax, 6
+        div     cl
+        mov     [fq_f+si], al
+        inc     si
+        cmp     si, 3
+        jb      .c
+        xor     bx, bx                  ; Bayer value t
+.t:     xor     si, si
+        xor     dx, dx                  ; cube index
+.k:     imul    dx, dx, 6
+        mov     al, [fq_l+si]
+        cmp     [fq_f+si], bl           ; fraction > t: the next level up
+        jbe     .k1
+        inc     al
+.k1:    cbw
+        add     dx, ax
+        inc     si
+        cmp     si, 3
+        jb      .k
+        add     dl, FP_CUBE
+        mov     [d16_plan+bx], dl
+        inc     bx
+        cmp     bx, 64
+        jb      .t
+        popad
+        ret
+%endif
 
 level:                                  ; cx = 0..255 -> cl = (cx*65)>>8
         imul    cx, cx, 65
@@ -568,7 +994,7 @@ rotate_brush:
         mov     ax, cx
         or      ax, dx
         jz      .r
-        ; copy colour pattern to tmp_pat
+        ; copy colour pattern + mono pattern to tmp_pat
         push    ds
         push    es
         pop     ds
@@ -578,8 +1004,8 @@ rotate_brush:
         push    di
         mov     di, tmp_pat
         push    cx
-        mov     cx, 72
-        rep     movsb                   ; colour + mono
+        mov     cx, 64*ELEM+8
+        rep     movsb
         pop     cx
         pop     di
         pop     es
@@ -590,7 +1016,7 @@ rotate_brush:
         sub     si, dx
         and     si, 7                   ; source row
         ; mono row
-        mov     al, [tmp_pat+64+si]
+        mov     al, [tmp_pat+64*ELEM+si]
         ror     al, cl
         mov     [es:di+BR_MONO+bx], al
         shl     si, 3
@@ -602,8 +1028,12 @@ rotate_brush:
         sub     al, cl
         and     ax, 7
         add     si, ax
-        mov     al, [tmp_pat+si]
-        mov     [es:di+BR_COLOR+bx], al
+        shl     si, ESHIFT
+        mov     EA, [tmp_pat+si]
+        push    bx
+        shl     bx, ESHIFT
+        mov     [es:di+BR_COLOR+bx], EA
+        pop     bx
         pop     ax
         pop     si
         inc     bx
@@ -620,12 +1050,12 @@ rotate_brush:
 check_solid:
         test    byte [es:di+BR_FLAGS], BRF_HATCH
         jnz     .no
-        mov     al, [es:di+BR_COLOR]
+        mov     EA, [es:di+BR_COLOR]
         xor     bx, bx
-.l:     cmp     [es:di+BR_COLOR+bx], al
+.l:     cmp     [es:di+BR_COLOR+bx], EA
         jne     .no
-        inc     bx
-        cmp     bx, 64
+        add     bx, ELEM
+        cmp     bx, 64*ELEM
         jb      .l
         mov     al, [es:di+BR_MONO]
         xor     bx, bx
@@ -635,8 +1065,9 @@ check_solid:
         cmp     bx, 8
         jb      .m
         or      byte [es:di+BR_FLAGS], BRF_SOLID
-        mov     al, [es:di+BR_COLOR]
-        mov     [es:di+BR_FG], al
+        mov     eax, [es:di+BR_COLOR]
+        and     eax, PIXMASK
+        mov     [es:di+BR_FG], eax
         mov     al, [es:di+BR_MONO]
         and     al, 1
         mov     [es:di+BR_FGMONO], al

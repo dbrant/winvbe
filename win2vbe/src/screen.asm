@@ -516,6 +516,7 @@ clear_screen:
         ret
 
 set_palette:
+%if BPP = 4
         mov     dx, 0x3C8
         xor     al, al
         out     dx, al
@@ -526,4 +527,23 @@ set_palette:
         out     dx, al
         inc     si
         loop    .l
+%else
+        mov     dx, 0x3C8               ; the fixed palette (pal_rgb)
+        xor     al, al
+        out     dx, al
+        inc     dx
+        mov     si, pal_rgb
+        mov     cx, 256
+.l:     mov     al, [si]                ; red, green, blue: 8 -> 6 bits
+        shr     al, 2
+        out     dx, al
+        mov     al, [si+1]
+        shr     al, 2
+        out     dx, al
+        mov     al, [si+2]
+        shr     al, 2
+        out     dx, al
+        add     si, 4
+        loop    .l
+%endif
         ret

@@ -245,7 +245,7 @@ do_polyline:
         mov     ax, [g_rop2]
         call    rop2_to_rop3
         mov     [ln_rop3], al
-%if PACKED
+%if BITROP
         call    build_rop_table
 %else
         mov     dl, [ln_fgval]
@@ -364,7 +364,7 @@ plot:
         push    bx
         push    edx
         ; style
-%if PACKED
+%if BITROP
         mov     bx, ln_fgval
 %else
         mov     bx, fgtab
@@ -375,7 +375,7 @@ plot:
         bt      edx, ecx
         pop     cx
         jc      .on
-%if PACKED
+%if BITROP
         mov     bx, ln_bkval
 %else
         mov     bx, bktab
@@ -395,7 +395,7 @@ plot:
         mov     bx, dst
         call    get_pixel
         pop     bx
-%if PACKED
+%if BITROP
         mov     edx, eax                ; D
         mov     eax, [bx]               ; pen / gap colour
         call    rop_px
@@ -430,7 +430,7 @@ phys_value:
         and     eax, 1
         ret
 .c:     and     eax, PIXMASK
-%if BPP = 8
+%if PALMGR
         cmp     byte [g_xlat], 0
         je      .r
         push    bx
