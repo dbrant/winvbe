@@ -159,6 +159,20 @@ read_row:
         inc     cl
         cmp     cl, [bx+SURF.planes]
         jb      .pl
+%if NPLANES = 4
+        cmp     byte [bx+SURF.planes], 3
+        jne     .done
+        mov     cx, [rr_n]              ; 8-colour bitmap -> full-intensity colours
+        shl     cx, 3
+        mov     si, di
+        push    bx
+.t8:    movzx   bx, byte [si]
+        mov     al, [cs:c8to16+bx]
+        mov     [si], al
+        inc     si
+        loop    .t8
+        pop     bx
+%endif
 .done:  pop     bp
         pop     es
         pop     di
@@ -184,7 +198,33 @@ write_row:
         jne     .mem
         call    scr_write
         jmp     .done
-.mem:   ; compute column range and masks
+.mem:
+%if NPLANES = 4
+        cmp     byte [bx+SURF.planes], 3
+        jne     .w16
+        push    ax                      ; 8-colour bitmap: translate the row
+        push    bx                      ; (with the bytes around it) into XBUF
+        push    cx
+        push    di
+        mov     cx, dx
+        add     cx, 16
+        sub     si, 8
+        mov     di, XBUF
+.t16:   movzx   bx, byte [si]
+        and     bl, 15
+        mov     al, [cs:c16to8+bx]
+        mov     [di], al
+        inc     si
+        inc     di
+        loop    .t16
+        pop     di
+        pop     cx
+        pop     bx
+        pop     ax
+        mov     si, XBUF+8
+.w16:
+%endif
+        ; compute column range and masks
         mov     [wr_x], cx
         mov     [wr_w], dx
         push    si
@@ -310,6 +350,13 @@ get_pixel:
         dec     ch
         jnz     .l
         mov     al, ah
+%if NPLANES = 4
+        cmp     byte [bx+SURF.planes], 3
+        jne     .g16
+        movzx   si, al
+        mov     al, [cs:c8to16+si]
+.g16:
+%endif
         pop     si
         pop     cx
 .r:     pop     es
@@ -337,6 +384,16 @@ put_pixel:
         mov     ch, 0x80
         shr     ch, cl                  ; bit mask
         pop     ax                      ; al = value
+%if NPLANES = 4
+        cmp     byte [bx+SURF.planes], 3
+        jne     .p16
+        push    bx
+        movzx   bx, al
+        and     bl, 15
+        mov     al, [cs:c16to8+bx]
+        pop     bx
+.p16:
+%endif
         mov     cl, [bx+SURF.planes]
 .l:     shr     al, 1
         jc      .one
@@ -399,6 +456,14 @@ fill_row_val:                           ; ah = value, ax high? -> value in [fill
         pop     cx
         pop     ax
         ret
+
+%if NPLANES = 4
+; 3-plane (8-colour) bitmaps on the 16-colour device: their colours are the
+; full-intensity ones (as with the 8-colour drivers), so 1..6 are the bright
+; colours and 7 is white.
+c8to16  db      0, 9, 10, 11, 12, 13, 14, 15
+c16to8  db      0, 1, 2, 3, 4, 5, 6, 7, 7, 1, 2, 3, 4, 5, 6, 7
+%endif
 
 ; byte -> 8 pixel bytes (bit 7 first), values 0/1
 exptab:

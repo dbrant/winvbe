@@ -149,4 +149,5 @@ SBUF              times ROWBUF db 0
                 times 16 db 0
 DBUF              times ROWBUF db 0
                 times 16 db 0
+XBUF            times ROWBUF+16 db 0
 data_end:

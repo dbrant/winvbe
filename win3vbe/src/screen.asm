@@ -734,20 +734,20 @@ set_palette:
         loop    .l
         ret
 
-palette6:                               ; EGA/VGA 16-colour order (6-bit DAC)
+palette6:                               ; Windows VGA 16-colour order (plane 0 = red)
         db       0,  0,  0
-        db       0,  0, 32
-        db       0, 32,  0
-        db       0, 32, 32
         db      32,  0,  0
-        db      32,  0, 32
+        db       0, 32,  0
         db      32, 32,  0
+        db       0,  0, 32
+        db      32,  0, 32
+        db       0, 32, 32
         db      48, 48, 48
         db      32, 32, 32
-        db       0,  0, 63
-        db       0, 63,  0
-        db       0, 63, 63
         db      63,  0,  0
-        db      63,  0, 63
+        db       0, 63,  0
         db      63, 63,  0
+        db       0,  0, 63
+        db      63,  0, 63
+        db       0, 63, 63
         db      63, 63, 63

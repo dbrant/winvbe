@@ -18,8 +18,10 @@ standard VGA adapter.
 | VBE1920 / VBE1920C | 1920x1080  | 8 / 16  |
 
 The 8-colour drivers behave like the stock Windows 2.03 VGA driver (3 planes,
-dithered greys). The `C` drivers have 16 colours: they use the standard EGA/VGA
-palette and dither 16-colour brushes.
+dithered greys). The `C` drivers have 16 colours: they use the standard 16-colour
+palette, with the colour numbering of the Windows EGA/VGA drivers (bit 0 red,
+bit 1 green, bit 2 blue, bit 3 bright), so programs that write bitmap bits
+directly get the right colours. They also dither 16-colour brushes.
 
 ## Where it runs
 

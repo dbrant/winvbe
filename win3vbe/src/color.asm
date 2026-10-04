@@ -183,11 +183,11 @@ rgbtab:
 %if NPLANES = 3
         db        0,  0,  0,  255,  0,  0,    0,255,  0,  255,255,  0
         db        0,  0,255,  255,  0,255,    0,255,255,  255,255,255
-%else                                   ; standard EGA/VGA IRGB order (plane 0 = blue)
-        db        0,  0,  0,    0,  0,128,    0,128,  0,    0,128,128
-        db      128,  0,  0,  128,  0,128,  128,128,  0,  192,192,192
-        db      128,128,128,    0,  0,255,    0,255,  0,    0,255,255
-        db      255,  0,  0,  255,  0,255,  255,255,  0,  255,255,255
+%else                                   ; Windows VGA order: bit 0 red, 1 green, 2 blue, 3 bright
+        db        0,  0,  0,  128,  0,  0,    0,128,  0,  128,128,  0
+        db        0,  0,128,  128,  0,128,    0,128,128,  192,192,192
+        db      128,128,128,  255,  0,  0,    0,255,  0,  255,255,  0
+        db        0,  0,255,  255,  0,255,    0,255,255,  255,255,255
 %endif
 
 ; is_mono_dev: es:si -> BITMAP/PDEVICE.  ZF=1 if mono memory bitmap.
@@ -417,10 +417,11 @@ pattern_row:
         dec     ah
         jnz     .m
         jmp     .r
-.color: ; colour pattern: combine NPLANES planes
+.color: ; colour pattern: combine the bitmap's planes
         push    bp
+        push    ax                      ; al = number of planes
         mov     bp, 1                   ; plane bit
-        mov     ah, NPLANES
+        mov     ah, al
 .pl:    mov     al, [si]
         mov     bx, dx
         push    ax
@@ -439,6 +440,22 @@ pattern_row:
         shl     bp, 1
         dec     ah
         jnz     .pl
+        pop     ax
+%if NPLANES = 4
+        cmp     al, 3                   ; 8-colour pattern: full-intensity colours
+        jne     .c16
+        mov     bx, dx
+        mov     ah, 8
+.c8:    push    bx
+        movzx   bp, byte [es:di+BR_COLOR+bx]
+        mov     al, [cs:c8to16+bp]
+        pop     bx
+        mov     [es:di+BR_COLOR+bx], al
+        inc     bx
+        dec     ah
+        jnz     .c8
+.c16:
+%endif
         pop     bp
         ; mono version: pixel == white -> 1 (approximate with colour index CMASK)
         mov     bx, dx
