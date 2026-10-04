@@ -1,0 +1,19 @@
+[disks]
+    1 =. ,"VESA/VBE display drivers for Windows 3.0",oemsetup.inf
+
+[display]
+vbe800   = 1:vbe800.drv, "VESA/VBE 800x600 (16 colors)", "100,96,96", 1:vgacolor.gr2, 1:vgalogo.lgo, x:*vddvga, 1:vga.gr3,, 1:vgalogo.rle
+vbe1024  = 1:vbe1024.drv, "VESA/VBE 1024x768 (16 colors)", "100,96,96", 1:vgacolor.gr2, 1:vgalogo.lgo, x:*vddvga, 1:vga.gr3,, 1:vgalogo.rle
+vbe1152  = 1:vbe1152.drv, "VESA/VBE 1152x864 (16 colors)", "100,96,96", 1:vgacolor.gr2, 1:vgalogo.lgo, x:*vddvga, 1:vga.gr3,, 1:vgalogo.rle
+vbe1280  = 1:vbe1280.drv, "VESA/VBE 1280x1024 (16 colors)", "100,96,96", 1:vgacolor.gr2, 1:vgalogo.lgo, x:*vddvga, 1:vga.gr3,, 1:vgalogo.rle
+vbe1600  = 1:vbe1600.drv, "VESA/VBE 1600x1200 (16 colors)", "100,96,96", 1:vgacolor.gr2, 1:vgalogo.lgo, x:*vddvga, 1:vga.gr3,, 1:vgalogo.rle
+vbe1920  = 1:vbe1920.drv, "VESA/VBE 1920x1080 (16 colors)", "100,96,96", 1:vgacolor.gr2, 1:vgalogo.lgo, x:*vddvga, 1:vga.gr3,, 1:vgalogo.rle
+
+[sysfonts]
+1:vgasys.fon,"VGA (640x480) resolution System Font", "100,96,96"
+
+[fixedfonts]
+1:vgafix.fon,"VGA (640x480) resolution Fixed System Font", "100,96,96"
+
+[oemfonts]
+1:vgaoem.fon,"VGA (640x480) resolution Terminal Font (USA/Europe)", "100,96,96",1

@@ -25,7 +25,22 @@ more recently, VBESVGA.DRV; those do not load in 3.0.)
 ## Installing
 
 The drivers are in `drivers\`, and `win3vbe.img` is a 1.44 MB floppy image with
-all of them, `VBELIST.COM` and a short README.
+the same files: the six drivers, an `OEMSETUP.INF` for Windows Setup,
+`VBELIST.COM`, a short README, and the stock Windows 3.0 VGA companion files
+that Setup installs with a display driver (the grabbers `VGACOLOR.GR2` and
+`VGA.GR3`, the startup logo `VGALOGO.LGO`/`VGALOGO.RLE` and the fonts
+`VGASYS.FON`, `VGAFIX.FON` and `VGAOEM.FON`).
+
+**With Windows Setup:**
+
+1. From DOS, run `SETUP` in `C:\WINDOWS`.
+2. Select **Display**, then **Other (Requires disk provided by a hardware
+   manufacturer)** at the end of the list.
+3. Enter the path of the floppy (`A:\`) or of the `drivers` directory, and pick a
+   resolution, e.g. *VESA/VBE 1024x768 (16 colors)*.
+4. Choose **Accept the configuration shown above**.
+
+**By hand:**
 
 1. Copy the driver for the resolution you want (e.g. `VBE1024.DRV`) into
    `C:\WINDOWS\SYSTEM`.
@@ -38,9 +53,9 @@ all of them, `VBELIST.COM` and a short README.
    `vgafix.fon`, `vgaoem.fon`) and `display=*vddvga` under `[386Enh]`.
 3. Start Windows (`win`, `win /2` or `win /r`, as usual).
 
-To go back, set `display.drv=vga.drv` again from DOS. If the video BIOS has no
-256-colour mode at the driver's resolution, Windows does not start. Instead, a
-message on the text screen says so.
+To go back, select VGA in Setup, or set `display.drv=vga.drv` again from DOS. If
+the video BIOS has no 256-colour mode at the driver's resolution, Windows does
+not start. Instead, a message on the text screen says so.
 
 ## Where it runs
 
@@ -145,8 +160,10 @@ Needs Python 3 and NASM (https://www.nasm.us).
     cd src
     python build.py --nasm C:\path\to\nasm.exe --floppy ..\win3vbe.img
 
-The script writes the six drivers, `VBELIST.COM` and `README.TXT` to `drivers\`.
-It needs the stock Windows 3.0 `VGA.DRV` in `src\`. `--debug 1` builds drivers
+The script writes the six drivers, `OEMSETUP.INF`, `VBELIST.COM`, `README.TXT`
+and the VGA companion files to `drivers\`.
+It needs, in `src\`, the stock Windows 3.0 `VGA.DRV` (its resources are copied
+into the drivers) and the VGA companion files listed above. `--debug 1` builds drivers
 that log to the Bochs/QEMU debug port (0xE9).
 
 Source files: `vbe.asm` (library init, includes), `enable.asm` (GDIINFO,

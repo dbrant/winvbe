@@ -6,7 +6,12 @@ https://dmitrybrant.com
 16-colour drivers for 800x600 up to 1920x1080, for real, standard
 and 386 enhanced mode.  A 386 or later CPU is required.
 
-Install:
+Install with Windows Setup: run SETUP in C:\WINDOWS from DOS,
+select "Display", then "Other (requires disk provided by a
+hardware manufacturer)", enter the drive or directory holding
+these files (e.g. A:\) and pick a resolution.
+
+Or by hand:
  1. Copy the VBExxxx.DRV file for the resolution you want into
     C:\WINDOWS\SYSTEM.
  2. In C:\WINDOWS\SYSTEM.INI, section [boot], set
