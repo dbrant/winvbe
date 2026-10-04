@@ -66,11 +66,8 @@ do_scanlines:
         jz      .r
         cmp     word [es:si+PEN_STYLE], 5
         je      .r
-        mov     al, [es:si+PEN_COLOR]
-        cmp     byte [dst+SURF.kind], SK_MONO
-        jne     .pc
-        mov     al, [es:si+PEN_COLOR+1]
-.pc:    call    solid_prow
+        call    pen_value
+        call    solid_prow
 .pat:   ; transparent hatch?
         mov     byte [g_transp], 0
         cmp     byte [g_hatch], 0
@@ -147,8 +144,8 @@ scan_span:
         jne     .gen
         cmp     byte [g_psolid], 0
         je      .gen
-        mov     al, [g_pval]
-        mov     [fill_val], al
+        mov     eax, [g_pval]
+        mov     [fill_val], eax
         mov     bx, dst
         mov     ax, [g_y]
         mov     cx, [g_x]
@@ -176,6 +173,7 @@ scan_span:
         mov     si, DBUF
         mov     di, SBUF
         mov     cx, dx
+        shl     cx, ESHIFT
         rep     movsb
         pop     es
         pop     di
@@ -211,10 +209,10 @@ scan_span:
         cmp     byte [pmask+bx], 0
         pop     bx
         jne     .tk
-        mov     al, [SBUF+di]
-        mov     [DBUF+di], al
+        mov     EA, [SBUF+di]
+        mov     [DBUF+di], EA
 .tk:    inc     cx
-        inc     di
+        add     di, ELEM
         dec     dx
         jnz     .tl
         pop     dx
@@ -237,16 +235,20 @@ do_polyline:
         cmp     ax, 5
         je      .r
         mov     [ln_style], ax
-        mov     dl, [es:si+PEN_COLOR]
-        mov     dh, [g_bk]
+        call    pen_value
+        mov     [ln_fgval], eax
+        mov     eax, [g_bk]
         cmp     byte [dst+SURF.kind], SK_MONO
         jne     .c
-        mov     dl, [es:si+PEN_COLOR+1]
-        mov     dh, [g_bkm]
-.c:     mov     [ln_bkval], dh
+        movzx   eax, byte [g_bkm]
+.c:     mov     [ln_bkval], eax
         mov     ax, [g_rop2]
         call    rop2_to_rop3
         mov     [ln_rop3], al
+%if PACKED
+        call    build_rop_table
+%else
+        mov     dl, [ln_fgval]
         call    make_pen_table          ; pentab = f(pen, D)
         ; copy to fgtab, build bktab for styled gaps
         push    es
@@ -268,6 +270,7 @@ do_polyline:
         mov     cx, NCOLORS
         rep     movsb
         pop     es
+%endif
         ; style pattern
         mov     bx, [ln_style]
         shl     bx, 2
@@ -359,16 +362,24 @@ draw_line:
 ; plot: cx = x, ax = y.  Applies style mask, clip, pen table.
 plot:
         push    bx
-        push    dx
+        push    edx
         ; style
+%if PACKED
+        mov     bx, ln_fgval
+%else
         mov     bx, fgtab
+%endif
         mov     edx, [ln_mask]
         push    cx
         mov     cl, [ln_bit]
         bt      edx, ecx
         pop     cx
         jc      .on
+%if PACKED
+        mov     bx, ln_bkval
+%else
         mov     bx, bktab
+%endif
         cmp     word [g_bkmode], OPAQUE
         jne     .skip
 .on:    cmp     cx, [clip_x0]
@@ -384,9 +395,16 @@ plot:
         mov     bx, dst
         call    get_pixel
         pop     bx
+%if PACKED
+        mov     edx, eax                ; D
+        mov     eax, [bx]               ; pen / gap colour
+        call    rop_px
+        mov     edx, eax
+%else
         and     al, CMASK
         xlatb
         mov     dl, al
+%endif
         pop     ax
         push    bx
         mov     bx, dst
@@ -396,8 +414,31 @@ plot:
         cmp     byte [ln_bit], 24
         jb      .r
         mov     byte [ln_bit], 0
-.r:     pop     dx
+.r:     pop     edx
         pop     bx
+        ret
+
+; pen_value: es:si -> physical pen -> eax = its value for the destination
+; (mono bit, or the pixel, palette-translated on the screen)
+pen_value:
+        mov     eax, [es:si+PEN_COLOR]
+; phys_value: eax = physical colour -> eax = value for the destination
+phys_value:
+        cmp     byte [dst+SURF.kind], SK_MONO
+        jne     .c
+        shr     eax, MONOB*8
+        and     eax, 1
+        ret
+.c:     and     eax, PIXMASK
+%if BPP = 8
+        cmp     byte [g_xlat], 0
+        je      .r
+        push    bx
+        movzx   bx, al
+        mov     al, [pal_xlat+bx]
+        pop     bx
+.r:
+%endif
         ret
 
 ; style masks, 24-pixel cycle (bit n = pixel n drawn with pen)

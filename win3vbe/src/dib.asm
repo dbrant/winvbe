@@ -1,7 +1,7 @@
 ; ---------------------------------------------------------------------------
 ; Device-independent bitmaps: DeviceBitmapBits (SetDIBits / GetDIBits on our
 ; memory bitmaps), DIBScreenBlt (SetDIBitsToDevice), CreateBitmap stub.
-; DIB rows are converted to/from the row engine's one-byte-per-pixel buffers
+; DIB rows are converted to/from the row engine's one-element-per-pixel buffers
 ; (SBUF) in chunks of DIB_CHUNK pixels.  Uncompressed 1, 4, 8 and 24 bpp.
 ; ---------------------------------------------------------------------------
 DIB_CHUNK       equ 512                 ; multiple of 8, <= MAXW
@@ -87,8 +87,9 @@ dib_parse:
         pop     eax
         ret
 
-; dib_build_xlat: DIB colour index -> physical value (colour index or, for
-; [dib_mono], the mono value), from the colour table.
+; dib_build_xlat: DIB colour index -> physical value (pixel or, for
+; [dib_mono], the mono value), from the colour table.  On the 256-colour
+; device GDI gives the colour table as WORD palette indices.
 dib_build_xlat:
         pushad
         push    es
@@ -96,21 +97,43 @@ dib_build_xlat:
         xor     di, di
 .l:     cmp     di, [dib_ncol]
         jae     .r
+%if BPP = 8
+        movzx   ebx, byte [es:si]       ; palette index
+        add     si, 2
+        cmp     byte [dib_mono], 0
+        je      .c
+        call    phys_mono
+        shr     ebx, 8
+        and     ebx, 1
+%else
         mov     dl, [es:si]             ; blue
         mov     ah, [es:si+1]           ; green
         mov     al, [es:si+2]           ; red
+        movzx   cx, byte [dib_csize]
+        add     si, cx
         call    rgb_to_phys
-        cmp     byte [dib_mono], 0
-        je      .c
-        mov     bl, bh
-.c:     mov     [dib_xlat+di], bl
-        movzx   ax, byte [dib_csize]
-        add     si, ax
+        call    phys_for_dib
+%endif
+.c:     push    di
+        shl     di, 2
+        mov     [dib_xlat+di], ebx
+        pop     di
         inc     di
         jmp     .l
 .r:     mov     byte [c24_valid], 0
+        mov     dword [pi_last], -1
         pop     es
         popad
+        ret
+
+; phys_for_dib: ebx = physical colour -> ebx = mono value ([dib_mono]) or pixel
+phys_for_dib:
+        cmp     byte [dib_mono], 0
+        je      .c
+        shr     ebx, MONOB*8
+        and     ebx, 1
+        ret
+.c:     and     ebx, PIXMASK
         ret
 
 ; dib_ptr: eax = linear offset into the DIB bits -> es:si, cx = bytes left in
@@ -204,12 +227,15 @@ dib_span:
         ret
 
 ; dib_unpack: eax = linear offset of the scan, cx = first pixel (multiple of
-; 8), dx = pixels (<= DIB_CHUNK) -> SBUF = physical values.
+; 8), dx = pixels (<= DIB_CHUNK) -> SBUF = physical values (elements).
 dib_unpack:
         pushad
+        push    es
         call    dib_span
         mov     di, DIBRAW
         call    dib_copy_in
+        push    ds
+        pop     es
         mov     cx, dx
         mov     si, DIBRAW
         mov     di, SBUF
@@ -231,37 +257,30 @@ dib_unpack:
         jne     .new
         cmp     dl, [c24_b]
         jne     .new
-        mov     bl, [c24_val]
+        mov     eax, [c24_val]
         jmp     .st
-.new:   call    rgb_to_phys
-        cmp     byte [dib_mono], 0
-        je      .c
-        mov     bl, bh
-.c:     mov     [c24_rg], ax
+.new:   mov     [c24_rg], ax
         mov     [c24_b], dl
-        mov     [c24_val], bl
+        call    rgb_to_phys
+        call    phys_for_dib
+        mov     [c24_val], ebx
         mov     byte [c24_valid], 1
-.st:    mov     [di], bl
-        inc     di
+        mov     eax, ebx
+.st:    STOSE
         loop    .b24
         jmp     .r
 .b8:    mov     bl, [si]
         inc     si
-        mov     al, [dib_xlat+bx]
-        mov     [di], al
-        inc     di
+        call    .x
         loop    .b8
         jmp     .r
 .b4:    mov     bl, [si]
         inc     si
         shr     bl, 4
-        mov     al, [dib_xlat+bx]
-        mov     [di], al
+        call    .x
         mov     bl, [si-1]
         and     bl, 15
-        mov     al, [dib_xlat+bx]
-        mov     [di+1], al
-        add     di, 2
+        call    .x
         sub     cx, 2
         jg      .b4
         jmp     .r
@@ -271,127 +290,171 @@ dib_unpack:
 .b1b:   xor     bx, bx
         shl     dl, 1
         adc     bl, 0
-        mov     al, [dib_xlat+bx]
-        mov     [di], al
-        inc     di
+        call    .x
         dec     dh
         jnz     .b1b
         sub     cx, 8
         jg      .b1
-.r:     popad
+.r:     pop     es
+        popad
+        ret
+; .x: bx = DIB index -> store its value at es:di
+.x:     push    bx
+        shl     bx, 2
+        mov     eax, [dib_xlat+bx]
+        STOSE
+        pop     bx
         ret
 
-; dib_build_gout: value read from the bitmap -> DIB index (1/4/8 bpp) or
-; colour index (24 bpp).  Source mono flag in [dib_mono].
+%if BPP <= 8
+; dib_build_gout: pixel value -> DIB index (1/4/8 bpp DIBs)
 dib_build_gout:
-        push    ax
-        push    bx
-        push    si
-        xor     bx, bx
-.l:     mov     al, bl
-        cmp     byte [dib_mono], 0
-        je      .col
-        neg     al                      ; mono 0/1 -> black / white
-        and     al, CMASK
-        cmp     word [dib_bpp], 1
-        jne     .st
-        mov     al, bl
-        jmp     .st
-.col:   cmp     word [dib_bpp], 1
-        jne     .st
-        mov     si, bx                  ; colour -> 0/1 by brightness
-        imul    si, si, 3
-        movzx   ax, byte [cs:rgbtab+si]
-        push    dx
-        movzx   dx, byte [cs:rgbtab+si+1]
-        add     ax, dx
-        movzx   dx, byte [cs:rgbtab+si+2]
-        add     ax, dx
-        pop     dx
-        cmp     ax, 382
-        mov     al, 0
-        jb      .st
-        inc     al
-.st:    mov     [gout+bx], al
+        pushad
+        xor     ebx, ebx
+.l:     mov     eax, ebx
+        call    pix_index_calc
+        mov     [gout+bx], al
         inc     bx
-        cmp     bx, 16
+        cmp     bx, 256
         jb      .l
-        pop     si
+        popad
+        ret
+%endif
+
+; pix_index: eax = pixel value -> al = DIB index (1/4/8 bpp DIBs)
+pix_index:
+%if BPP <= 8
+        push    bx
+        movzx   bx, al
+        mov     al, [gout+bx]
         pop     bx
-        pop     ax
+        ret
+%else
+        cmp     eax, [pi_last]
+        jne     .new
+        mov     al, [pi_idx]
+        ret
+.new:   mov     [pi_last], eax
+        call    pix_index_calc
+        mov     [pi_idx], al
+        ret
+%endif
+
+; pix_index_calc: eax = pixel value -> al = DIB index, by dib_bpp
+pix_index_calc:
+        push    ebx
+        push    dx
+%if BPP = 8
+        cmp     word [dib_bpp], 1
+        je      .rgb
+        cmp     dword [dib_trans], 0    ; GDI's device -> DIB index table
+        je      .notr
+        push    es
+        push    si
+        les     si, [dib_trans]
+        movzx   bx, al
+        mov     al, [es:si+bx]
+        pop     si
+        pop     es
+        jmp     .r
+.notr:  cmp     word [dib_bpp], 8       ; 8 bpp: our palette as colour table
+        je      .r
+%elif BPP = 4
+        cmp     word [dib_bpp], 1       ; 4 / 8 bpp: our colours as they are
+        jne     .r4
+%endif
+.rgb:   mov     ebx, eax
+        call    phys_to_rgb.color       ; al=R ah=G dl=B
+        cmp     word [dib_bpp], 1
+        je      .mono
+        cmp     word [dib_bpp], 4
+        je      .vga
+        and     al, 0xE0                ; 8 bpp: 3-3-2
+        shr     ah, 3
+        and     ah, 0x1C
+        or      al, ah
+        shr     dl, 6
+        or      al, dl
+        jmp     .r
+.vga:   call    nearest_vga
+        mov     al, bl
+        jmp     .r
+.mono:  movzx   bx, al
+        movzx   ax, ah
+        add     bx, ax
+        movzx   ax, dl
+        add     bx, ax
+        xor     al, al
+        cmp     bx, 382
+        jb      .r
+        inc     al
+        jmp     .r
+%if BPP = 4
+.r4:    and     al, CMASK
+%endif
+.r:     pop     dx
+        pop     ebx
         ret
 
 ; dib_pack: SBUF = values from read_row; eax = linear offset of the scan,
 ; cx = first pixel (multiple of 8), dx = pixels -> stored into the DIB.
 dib_pack:
         pushad
+        push    es
         push    eax
         push    cx
         push    dx
-        mov     di, SBUF                ; clear the tail of the last byte
-        add     di, dx
-        mov     dword [di], 0
+        push    ds
+        pop     es
+        mov     cx, dx
+        mov     si, SBUF
+        cmp     word [dib_bpp], 24
+        jne     .idx
+        mov     di, DIBRAW
+.b24:   call    .get
+        push    dx
+        mov     ebx, eax
+        call    phys_to_rgb.color
+        mov     [di], dl                ; blue
+        mov     [di+1], ah
+        mov     [di+2], al
+        pop     dx
+        add     di, 3
+        loop    .b24
+        jmp     .out
+.idx:   mov     di, SBUF                ; DIB indices, a byte each, in place
+.ix:    call    .get
+        call    pix_index
+        stosb
+        loop    .ix
+        mov     dword [di], 0           ; clear the tail of the last byte
         mov     dword [di+4], 0
         mov     cx, dx
         mov     si, SBUF
         mov     di, DIBRAW
-        xor     bx, bx
         mov     ax, [dib_bpp]
         cmp     ax, 1
         je      .b1
         cmp     ax, 4
         je      .b4
-        cmp     ax, 8
-        je      .b8
-.b24:   mov     bl, [si]
-        inc     si
-        and     bl, 15
-        mov     bl, [gout+bx]
-        push    bx
-        imul    bx, bx, 3
-        mov     al, [cs:rgbtab+bx+2]
-        mov     [di], al                ; blue
-        mov     al, [cs:rgbtab+bx+1]
-        mov     [di+1], al
-        mov     al, [cs:rgbtab+bx]
-        mov     [di+2], al
-        pop     bx
-        xor     bh, bh
-        add     di, 3
-        loop    .b24
+        rep     movsb                   ; 8 bpp
         jmp     .out
-.b8:    mov     bl, [si]
-        inc     si
-        and     bl, 15
-        mov     al, [gout+bx]
-        mov     [di], al
-        inc     di
-        loop    .b8
-        jmp     .out
-.b4:    mov     bl, [si]
-        and     bl, 15
-        mov     al, [gout+bx]
+.b4:    lodsw
         shl     al, 4
-        mov     bl, [si+1]
-        and     bl, 15
-        or      al, [gout+bx]
-        mov     [di], al
-        inc     di
-        add     si, 2
+        or      al, ah
+        stosb
         sub     cx, 2
         jg      .b4
         jmp     .out
 .b1:    mov     dh, 8
-        xor     al, al
-.b1b:   mov     bl, [si]
-        inc     si
-        and     bl, 15
-        shl     al, 1
-        or      al, [gout+bx]
+        xor     ah, ah
+.b1b:   lodsb
+        shl     ah, 1
+        or      ah, al
         dec     dh
         jnz     .b1b
-        mov     [di], al
-        inc     di
+        mov     al, ah
+        stosb
         sub     cx, 8
         jg      .b1
 .out:   pop     dx
@@ -400,14 +463,34 @@ dib_pack:
         call    dib_span
         mov     si, DIBRAW
         call    dib_copy_out
+        pop     es
         popad
         ret
+; .get: ds:si -> element -> eax = pixel value (mono 0/1 -> black / white)
+.get:   xor     eax, eax
+        mov     EA, [si]
+        add     si, ELEM
+%if BPP = 32
+        and     eax, PIXMASK
+%elif BPP = 4
+        and     al, CMASK
+%endif
+        cmp     byte [dib_mono], 0
+        je      .gr
+        and     eax, 1
+        neg     eax
+        and     eax, WHITE
+.gr:    ret
 
 ; dib_put_ctab: write our colour table into the BITMAPINFO
 dib_put_ctab:
         pushad
         push    es
         les     di, [dib_ctab]
+%if BPP = 8
+        cmp     dword [dib_trans], 0    ; GDI fills it from its own table
+        jne     .r
+%endif
         mov     cx, 2
         cmp     word [dib_bpp], 1
         je      .go
@@ -428,7 +511,19 @@ dib_put_ctab:
         jz      .st
         mov     eax, 0xFFFFFF
         jmp     .st
-.c:     cmp     bx, NCOLORS
+.c:     cmp     word [dib_bpp], 4
+        jne     .c8
+        mov     si, bx                  ; 4 bpp: the VGA colours
+        imul    si, si, 3
+        mov     al, [cs:vga16+si]
+        shl     eax, 8
+        mov     al, [cs:vga16+si+1]
+        shl     eax, 8
+        mov     al, [cs:vga16+si+2]
+        jmp     .st
+.c8:
+%if BPP = 4
+        cmp     bx, NCOLORS
         jae     .st
         mov     si, bx
         imul    si, si, 3
@@ -437,6 +532,17 @@ dib_put_ctab:
         mov     al, [cs:rgbtab+si+1]
         shl     eax, 8
         mov     al, [cs:rgbtab+si+2]
+%elif BPP = 8
+        mov     si, bx                  ; our palette
+        shl     si, 2
+        mov     al, [pal_rgb+si]
+        shl     eax, 8
+        mov     al, [pal_rgb+si+1]
+        shl     eax, 8
+        mov     al, [pal_rgb+si+2]
+%else
+        call    c332_rgb                ; 3-3-2
+%endif
 .st:    mov     [es:di], ax
         shr     eax, 16
         mov     [es:di+2], al
@@ -451,6 +557,42 @@ dib_put_ctab:
         popad
         ret
 
+%if BPP > 8
+; c332_rgb: bl = 3-3-2 index -> eax = 00RRGGBB
+c332_rgb:
+        push    dx
+        xor     eax, eax
+        mov     dl, bl                  ; red: bits 5-7
+        and     dl, 0xE0
+        call    .wid3
+        mov     al, dl
+        shl     eax, 8
+        mov     dl, bl                  ; green: bits 2-4
+        shl     dl, 3
+        and     dl, 0xE0
+        call    .wid3
+        mov     al, dl
+        shl     eax, 8
+        mov     dl, bl                  ; blue: bits 0-1
+        and     dl, 3
+        mov     dh, dl
+        shl     dh, 2
+        or      dl, dh
+        mov     dh, dl
+        shl     dh, 4
+        or      dl, dh
+        mov     al, dl
+        pop     dx
+        ret
+; .wid3: dl = 3 bits in bits 5-7 -> dl widened to 8 bits (uses dh)
+.wid3:  mov     dh, dl
+        shr     dh, 3
+        or      dl, dh
+        shr     dh, 3
+        or      dl, dh
+        ret
+%endif
+
 ; ---------------------------------------------------------------------------
 ; DeviceBitmapBits(lpBitmap, fGet, iStart, cScans, lpDIBits, lpBitmapInfo,
 ;                  lpDrawMode, lpTranslate)
@@ -461,6 +603,7 @@ dbb_iStart      equ 24
 dbb_cScans      equ 22
 dbb_lpBits      equ 18
 dbb_lpbi        equ 14
+dbb_lpTrans     equ 6
 
 DeviceBitmapBits:
         PROLOG
@@ -478,6 +621,8 @@ DeviceBitmapBits:
         jne     .nm
         inc     al
 .nm:    mov     [dib_mono], al
+        mov     eax, [bp+dbb_lpTrans]
+        mov     [dib_trans], eax
         mov     eax, [bp+dbb_lpBits]
         mov     [dib_bits], eax
         ; scans: n = min(cScans, height - iStart)
@@ -500,7 +645,11 @@ DeviceBitmapBits:
         call    dib_build_xlat
         jmp     .go
 .get:   call    dib_put_ctab
+%if BPP <= 8
         call    dib_build_gout
+%else
+        mov     dword [pi_last], -1
+%endif
         cmp     dword [dib_bits], 0
         je      .ret
 .go:    xor     si, si                  ; j = supplied scan number
@@ -575,6 +724,7 @@ DIBScreenBlt:
         jz      .fail
         mov     [dib_bits], eax
         mov     byte [dib_mono], 0
+        mov     dword [dib_trans], 0
         ; destination rectangle of the supplied scans
         mov     ax, [bp+dsb_DestX]
         mov     [bp-8], ax
@@ -659,6 +809,7 @@ DIBScreenBlt:
         add     dx, bx
         call    dib_unpack
         pop     dx                      ; pixels drawn
+        shl     bx, ESHIFT
         add     bx, SBUF
         mov     si, bx
         pop     cx

@@ -1,7 +1,9 @@
 ; ---------------------------------------------------------------------------
 ; VBE.DRV - Windows 3.0 display driver for VESA VBE (and QEMU/Bochs) adapters
-; 8bpp banked frame buffer internally; presents a 4-plane, 16-colour device
-; to GDI.  Runs in real, standard and 386 enhanced mode (386 CPU required).
+; Banked VBE frame buffer.  BPP=4: an 8 bpp mode, presented to GDI as a
+; 4-plane, 16-colour device.  BPP=8: 256 colours with the palette manager.
+; BPP=16 / 32: HiColor (5:6:5 or 5:5:5) / TrueColor (8:8:8 in 32 bits).
+; Runs in real, standard and 386 enhanced mode (386 CPU required).
 ; Dmitry Brant, 2026
 ; ---------------------------------------------------------------------------
 [map symbols out/vbe.map]
@@ -87,6 +89,12 @@ cs_write_word:
 %include "text.asm"
 %include "pixel.asm"
 %include "dib.asm"
+%if BPP = 8
+%include "palette.asm"
+%endif
+%if BPP > 8
+%include "stretch.asm"
+%endif
 %include "debug.asm"
 code_end:
         align   16, db 0

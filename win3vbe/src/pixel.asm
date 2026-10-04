@@ -2,26 +2,6 @@
 ; Pixel and ScanLR
 ; ---------------------------------------------------------------------------
 
-; index_mono: al = colour index -> al = mono value (luminance test like ColorInfo)
-index_mono:
-        push    bx
-        push    cx
-        movzx   bx, al
-        and     bl, CMASK
-        imul    bx, bx, 3
-        movzx   cx, byte [cs:rgbtab+bx]
-        movzx   ax, byte [cs:rgbtab+bx+1]
-        add     cx, ax
-        movzx   ax, byte [cs:rgbtab+bx+2]
-        add     cx, ax
-        xor     al, al
-        cmp     cx, 382
-        jb      .r
-        inc     al
-.r:     pop     cx
-        pop     bx
-        ret
-
 ; Pixel(lpDestDev, x, y, PhysColor, lpDrawMode)
 px_lpDst        equ 18
 px_x            equ 16
@@ -67,26 +47,49 @@ Pixel:
         ; get
         mov     bx, dst
         call    get_pixel
+        and     eax, PIXMASK
         cmp     byte [dst+SURF.kind], SK_MONO
         jne     .gc
-        mov     ah, al
-        neg     al
-        and     al, CMASK
-        jmp     .gr
-.gc:    and     al, CMASK
-        mov     ah, al
-        call    index_mono
-        xchg    al, ah
-.gr:    xor     dx, dx
-        push    ax
+        and     eax, 1                  ; mono: black or white
+        mov     edx, eax
+        neg     eax
+        and     eax, PIXMASK
+        jmp     .gm
+.gc:    push    eax
+        call    elem_mono
+        movzx   edx, al
+        pop     eax
+.gm:    shl     edx, MONOB*8
+        or      eax, edx
+%if BPP = 8
+        or      eax, 0xFF000000
+%endif
+        push    eax
         call    blt_unexclude
         pop     ax
+        pop     dx
         jmp     .done
 .set:   push    ax
         push    cx
         call    get_dm_colors
         mov     ax, [g_rop2]
         call    rop2_to_rop3
+%if PACKED
+        call    build_rop_table
+        mov     eax, [bp+px_color]
+        call    phys_value
+        mov     [ln_fgval], eax
+        pop     cx
+        pop     ax
+        mov     bx, dst
+        push    ax
+        call    get_pixel
+        mov     edx, eax
+        mov     eax, [ln_fgval]
+        call    rop_px
+        mov     edx, eax
+        pop     ax
+%else
         mov     dl, [bp+px_color]
         cmp     byte [dst+SURF.kind], SK_MONO
         jne     .sc
@@ -102,6 +105,7 @@ Pixel:
         xlatb
         mov     dl, al
         pop     ax
+%endif
         mov     bx, dst
         call    put_pixel
         call    blt_unexclude
@@ -130,12 +134,19 @@ ScanLR:
         mov     ax, [bp+sl_y]
         cmp     ax, [dst+SURF.height]
         jae     .oob
-        mov     dl, [bp+sl_color]
-        cmp     byte [dst+SURF.kind], SK_MONO
+        push    ax
+%if BPP = 8
+        mov     byte [g_xlat], 0
+        cmp     byte [dst+SURF.kind], SK_SCREEN
         jne     .c
-        mov     dl, [bp+sl_color+1]
-.c:     and     dl, CMASK
-        mov     [sl_target], dl
+        mov     al, [pal_mod]
+        mov     [g_xlat], al
+.c:
+%endif
+        mov     eax, [bp+sl_color]
+        call    phys_value
+        mov     [sl_target], eax
+        pop     ax
         mov     byte [g_excl], 0
         cmp     byte [dst+SURF.kind], SK_SCREEN
         jne     .ne
@@ -168,7 +179,7 @@ ScanLR:
         mov     bx, cx                  ; current x
 .rl:    call    .test
         jc      .rfound
-        inc     si
+        add     si, ELEM
         inc     bx
         dec     dx
         jnz     .rl
@@ -195,15 +206,16 @@ ScanLR:
         mov     di, DBUF
         mov     bx, dst
         call    read_row
-        mov     si, DBUF
-        add     si, dx
+        mov     si, dx
         dec     si                      ; last pixel of chunk
+        shl     si, ESHIFT
+        add     si, DBUF
         pop     bx
         dec     bx                      ; its x
         push    cx
 .ll:    call    .test
         jc      .lfound
-        dec     si
+        sub     si, ELEM
         dec     bx
         dec     dx
         jnz     .ll
@@ -234,9 +246,13 @@ ScanLR:
         DBG     13,10
         EPILOG  14
 ; .test: CF=1 if pixel at [si] satisfies the search
-.test:  mov     al, [si]
+.test:  mov     EA, [si]
+%if BPP = 32
+        and     eax, PIXMASK
+%elif BPP = 4
         and     al, CMASK
-        cmp     al, [sl_target]
+%endif
+        cmp     EA, [sl_target]
         je      .eq
         ; pixel differs: matches when searching for "not colour" (bit 0 set)
         test    byte [bp+sl_style], 1

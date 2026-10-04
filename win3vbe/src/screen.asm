@@ -368,7 +368,8 @@ win_sel:
 .no:    stc
         ret
 
-; vbe_check_mode: [vbe_mode] -> CF=0 if it is XRES x YRES, 8bpp packed.
+; vbe_check_mode: [vbe_mode] -> CF=0 if it is XRES x YRES in our pixel format
+; (8 bpp packed; 15/16 bpp direct for HiColor; 32 bpp x8r8g8b8 for TrueColor).
 ; Leaves the ModeInfoBlock in PBUF.  Preserves si.
 vbe_check_mode:
         push    si
@@ -405,14 +406,50 @@ vbe_check_mode:
         jne     .no
         cmp     word [PBUF+0x14], YRES
         jne     .no
-        cmp     byte [PBUF+0x19], 8     ; bits per pixel
-        jne     .no
         cmp     byte [PBUF+0x18], 1     ; planes
+        jne     .no
+%if BPP <= 8
+        cmp     byte [PBUF+0x19], 8     ; bits per pixel
         jne     .no
         cmp     byte [PBUF+0x1B], 4     ; packed pixel
         jne     .no
+%else
+        mov     al, [PBUF+0x1B]         ; memory model: direct colour (or packed)
+        cmp     al, 6
+        je      .dc
+        cmp     al, 4
+        jne     .no
+.dc:
+%if BPP = 16
+        mov     byte [pix_g6], 1
+        cmp     byte [PBUF+0x19], 16
+        je      .m16
+        cmp     byte [PBUF+0x19], 15
+        jne     .no
+        mov     byte [pix_g6], 0        ; 5:5:5
         jmp     .yes
-.noext: cmp     word [vbe_mode], STDMODE
+.m16:   test    byte [PBUF], 0x02
+        jz      .yes
+        cmp     byte [PBUF+0x21], 5     ; green mask size 5: 5:5:5 after all
+        jne     .yes
+        mov     byte [pix_g6], 0
+%else
+        cmp     byte [PBUF+0x19], 32
+        jne     .no
+        cmp     byte [PBUF+0x20], 16    ; red at bit 16, green 8, blue 0
+        jne     .no
+        cmp     byte [PBUF+0x22], 8
+        jne     .no
+        cmp     byte [PBUF+0x24], 0
+        jne     .no
+%endif
+%endif
+        jmp     .yes
+.noext:
+%if BPP > 8
+        jmp     .no
+%endif
+        cmp     word [vbe_mode], STDMODE
         jne     .no
         cmp     word [vbe_mode], 0
         je      .no
@@ -473,7 +510,10 @@ try_dispi:
         call    dispi_present
         jc      .no
         mov     byte [vmode_kind], VK_DISPI
-        mov     dword [scr_pitch], PITCH
+        mov     dword [scr_pitch], PITCH*ELEM
+%if BPP = 16
+        mov     byte [pix_g6], 1        ; DISPI 16 bpp is 5:6:5
+%endif
         mov     ax, [sel_a000]
         test    word [winflags], WF_PMODE
         jnz     .s
@@ -495,7 +535,11 @@ dispi_set:
         VBEOUT  VBEI_ENABLE, 0
         VBEOUT  VBEI_XRES, XRES
         VBEOUT  VBEI_YRES, YRES
+%if BPP <= 8
         VBEOUT  VBEI_BPP, 8
+%else
+        VBEOUT  VBEI_BPP, BPP
+%endif
         VBEOUT  VBEI_ENABLE, 1
         VBEOUT  VBEI_VWIDTH, PITCH
         VBEOUT  VBEI_BANK, 0            ; leaves the index register at BANK
@@ -566,11 +610,15 @@ scr_span:
         pop     eax
         ret
 
-; scr_read: ax = y, cx = x, dx = w, di -> buffer (DS).  Preserves registers.
+; scr_read: ax = y, cx = x, dx = w (pixels), di -> buffer (DS).  Preserves registers.
 scr_read:
         cmp     byte [enabled], 0       ; in the background: the screen is not ours
         je      .off
         pushad
+%if ESHIFT
+        shl     cx, ESHIFT              ; pixels -> bytes
+        shl     dx, ESHIFT
+%endif
         push    es
         push    ds
         pop     es
@@ -598,11 +646,15 @@ scr_read:
         popad
 .off:   ret
 
-; scr_write: ax = y, cx = x, dx = w, si -> buffer (DS).  Preserves registers.
+; scr_write: ax = y, cx = x, dx = w (pixels), si -> buffer (DS).  Preserves registers.
 scr_write:
         cmp     byte [enabled], 0
         je      .off
         pushad
+%if ESHIFT
+        shl     cx, ESHIFT
+        shl     dx, ESHIFT
+%endif
         push    es
         mov     bx, si
 .l:     push    cx
@@ -625,29 +677,45 @@ scr_write:
         popad
 .off:   ret
 
-; scr_fill: ax = y, cx = x, dx = w, value in [fill_val].  Preserves registers.
+; scr_fill: ax = y, cx = x, dx = w (pixels), pixel value in [fill_val].
+; Preserves registers.
 scr_fill:
         cmp     byte [enabled], 0
         je      .off
         pushad
         push    es
+%if ESHIFT
+        shl     cx, ESHIFT
+        shl     dx, ESHIFT
+%endif
+        push    eax                     ; fill_pat: the pixel repeated over a dword
+        mov     eax, [fill_val]
+%if ELEM = 1
+        mov     ah, al
+%endif
+%if ELEM <= 2
+        push    ax
+        shl     eax, 16
+        pop     ax
+%endif
+        mov     [fill_pat], eax
+        pop     eax
 .l:     push    cx
         call    scr_span
         mov     bp, cx
         mov     es, [win_wseg]
-        push    ax
-        mov     al, [fill_val]
-        mov     ah, al
-        push    ax
-        shl     eax, 16
-        pop     ax
+        push    eax
+        mov     eax, [fill_pat]
         push    cx
         shr     cx, 2
         rep     stosd
         pop     cx
         and     cx, 3
-        rep     stosb
-        pop     ax
+        jz      .nb
+.rb:    stosb                           ; spans start on a pixel, so the
+        shr     eax, 8                  ; pattern phase is right
+        loop    .rb
+.nb:    pop     eax
         pop     cx
         add     cx, bp
         sub     dx, bp
@@ -656,7 +724,8 @@ scr_fill:
         popad
 .off:   ret
 
-; scr_getpix: ax = y, cx = x -> al.  scr_putpix: ax = y, cx = x, dl = value.
+; scr_getpix: ax = y, cx = x -> EA (pixel).  scr_putpix: ax = y, cx = x,
+; ED = pixel.
 scr_getpix:
         cmp     byte [enabled], 0
         je      .off
@@ -664,16 +733,19 @@ scr_getpix:
         push    dx
         push    di
         push    es
-        mov     dx, 1
+        mov     dx, ELEM
+%if ESHIFT
+        shl     cx, ESHIFT
+%endif
         call    scr_span
         mov     es, [win_rseg]
-        mov     al, [es:di]
+        mov     EA, [es:di]
         pop     es
         pop     di
         pop     dx
         pop     cx
         ret
-.off:   xor     al, al
+.off:   xor     EA, EA
         ret
 
 scr_putpix:
@@ -683,12 +755,23 @@ scr_putpix:
         push    dx
         push    di
         push    es
+%if ELEM = 4
+        push    edx
+%else
         push    dx
-        mov     dx, 1
+%endif
+        mov     dx, ELEM
+%if ESHIFT
+        shl     cx, ESHIFT
+%endif
         call    scr_span
+%if ELEM = 4
+        pop     edx
+%else
         pop     dx
+%endif
         mov     es, [win_wseg]
-        mov     [es:di], dl
+        mov     [es:di], ED
         pop     es
         pop     di
         pop     dx
@@ -722,6 +805,7 @@ clear_screen:
         ret
 
 set_palette:
+%if BPP = 4
         mov     dx, 0x3C8
         xor     al, al
         out     dx, al
@@ -732,7 +816,37 @@ set_palette:
         out     dx, al
         inc     si
         loop    .l
+%elif BPP = 8
+        xor     ax, ax                  ; the whole palette from pal_rgb
+        mov     cx, 256
+        call    dac_load
+%endif
         ret
+
+%if BPP = 8
+; dac_load: program DAC entries ax .. ax+cx-1 from pal_rgb.  Preserves si.
+dac_load:
+        push    si
+        mov     dx, 0x3C8
+        out     dx, al
+        inc     dx
+        movzx   si, al
+        shl     si, 2
+        add     si, pal_rgb
+.l:     mov     al, [si]                ; red
+        shr     al, 2
+        out     dx, al
+        mov     al, [si+1]
+        shr     al, 2
+        out     dx, al
+        mov     al, [si+2]
+        shr     al, 2
+        out     dx, al
+        add     si, 4
+        loop    .l
+        pop     si
+        ret
+%endif
 
 palette6:                               ; Windows VGA 16-colour order (plane 0 = red)
         db       0,  0,  0

@@ -8,6 +8,24 @@ vbe1152  = 1:vbe1152.drv, "VESA/VBE 1152x864 (16 colors)", "100,96,96", 1:vgacol
 vbe1280  = 1:vbe1280.drv, "VESA/VBE 1280x1024 (16 colors)", "100,96,96", 1:vgacolor.gr2, 1:vgalogo.lgo, x:*vddvga, 1:vga.gr3,, 1:vgalogo.rle
 vbe1600  = 1:vbe1600.drv, "VESA/VBE 1600x1200 (16 colors)", "100,96,96", 1:vgacolor.gr2, 1:vgalogo.lgo, x:*vddvga, 1:vga.gr3,, 1:vgalogo.rle
 vbe1920  = 1:vbe1920.drv, "VESA/VBE 1920x1080 (16 colors)", "100,96,96", 1:vgacolor.gr2, 1:vgalogo.lgo, x:*vddvga, 1:vga.gr3,, 1:vgalogo.rle
+vbe800p  = 1:vbe800p.drv, "VESA/VBE 800x600 (256 colors)", "100,96,96", 1:vgacolor.gr2, 1:vgalogo.lgo, x:*vddvga, 1:vga.gr3,, 1:vgalogo.rle
+vbe1024p = 1:vbe1024p.drv, "VESA/VBE 1024x768 (256 colors)", "100,96,96", 1:vgacolor.gr2, 1:vgalogo.lgo, x:*vddvga, 1:vga.gr3,, 1:vgalogo.rle
+vbe1152p = 1:vbe1152p.drv, "VESA/VBE 1152x864 (256 colors)", "100,96,96", 1:vgacolor.gr2, 1:vgalogo.lgo, x:*vddvga, 1:vga.gr3,, 1:vgalogo.rle
+vbe1280p = 1:vbe1280p.drv, "VESA/VBE 1280x1024 (256 colors)", "100,96,96", 1:vgacolor.gr2, 1:vgalogo.lgo, x:*vddvga, 1:vga.gr3,, 1:vgalogo.rle
+vbe1600p = 1:vbe1600p.drv, "VESA/VBE 1600x1200 (256 colors)", "100,96,96", 1:vgacolor.gr2, 1:vgalogo.lgo, x:*vddvga, 1:vga.gr3,, 1:vgalogo.rle
+vbe1920p = 1:vbe1920p.drv, "VESA/VBE 1920x1080 (256 colors)", "100,96,96", 1:vgacolor.gr2, 1:vgalogo.lgo, x:*vddvga, 1:vga.gr3,, 1:vgalogo.rle
+vbe800h  = 1:vbe800h.drv, "VESA/VBE 800x600 (65536 colors)", "100,96,96", 1:vgacolor.gr2, 1:vgalogo.lgo, x:*vddvga, 1:vga.gr3,, 1:vgalogo.rle
+vbe1024h = 1:vbe1024h.drv, "VESA/VBE 1024x768 (65536 colors)", "100,96,96", 1:vgacolor.gr2, 1:vgalogo.lgo, x:*vddvga, 1:vga.gr3,, 1:vgalogo.rle
+vbe1152h = 1:vbe1152h.drv, "VESA/VBE 1152x864 (65536 colors)", "100,96,96", 1:vgacolor.gr2, 1:vgalogo.lgo, x:*vddvga, 1:vga.gr3,, 1:vgalogo.rle
+vbe1280h = 1:vbe1280h.drv, "VESA/VBE 1280x1024 (65536 colors)", "100,96,96", 1:vgacolor.gr2, 1:vgalogo.lgo, x:*vddvga, 1:vga.gr3,, 1:vgalogo.rle
+vbe1600h = 1:vbe1600h.drv, "VESA/VBE 1600x1200 (65536 colors)", "100,96,96", 1:vgacolor.gr2, 1:vgalogo.lgo, x:*vddvga, 1:vga.gr3,, 1:vgalogo.rle
+vbe1920h = 1:vbe1920h.drv, "VESA/VBE 1920x1080 (65536 colors)", "100,96,96", 1:vgacolor.gr2, 1:vgalogo.lgo, x:*vddvga, 1:vga.gr3,, 1:vgalogo.rle
+vbe800t  = 1:vbe800t.drv, "VESA/VBE 800x600 (16M colors)", "100,96,96", 1:vgacolor.gr2, 1:vgalogo.lgo, x:*vddvga, 1:vga.gr3,, 1:vgalogo.rle
+vbe1024t = 1:vbe1024t.drv, "VESA/VBE 1024x768 (16M colors)", "100,96,96", 1:vgacolor.gr2, 1:vgalogo.lgo, x:*vddvga, 1:vga.gr3,, 1:vgalogo.rle
+vbe1152t = 1:vbe1152t.drv, "VESA/VBE 1152x864 (16M colors)", "100,96,96", 1:vgacolor.gr2, 1:vgalogo.lgo, x:*vddvga, 1:vga.gr3,, 1:vgalogo.rle
+vbe1280t = 1:vbe1280t.drv, "VESA/VBE 1280x1024 (16M colors)", "100,96,96", 1:vgacolor.gr2, 1:vgalogo.lgo, x:*vddvga, 1:vga.gr3,, 1:vgalogo.rle
+vbe1600t = 1:vbe1600t.drv, "VESA/VBE 1600x1200 (16M colors)", "100,96,96", 1:vgacolor.gr2, 1:vgalogo.lgo, x:*vddvga, 1:vga.gr3,, 1:vgalogo.rle
+vbe1920t = 1:vbe1920t.drv, "VESA/VBE 1920x1080 (16M colors)", "100,96,96", 1:vgacolor.gr2, 1:vgalogo.lgo, x:*vddvga, 1:vga.gr3,, 1:vgalogo.rle
 
 [sysfonts]
 1:vgasys.fon,"VGA (640x480) resolution System Font", "100,96,96"

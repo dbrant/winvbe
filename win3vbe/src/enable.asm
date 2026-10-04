@@ -9,15 +9,30 @@ RC_BITMAP64     equ 0x0008
 RC_GDI20_OUTPUT equ 0x0010
 RC_DI_BITMAP    equ 0x0080
 RC_DIBTODEV     equ 0x0200
+RC_PALETTE      equ 0x0100
+RC_STRETCHBLT   equ 0x0800
+%if BPP = 8
+RASTERCAPS      equ RC_BITBLT | RC_BITMAP64 | RC_GDI20_OUTPUT | RC_DI_BITMAP | RC_DIBTODEV | RC_PALETTE
+%elif BPP > 8
+RASTERCAPS      equ RC_BITBLT | RC_BITMAP64 | RC_GDI20_OUTPUT | RC_DI_BITMAP | RC_DIBTODEV | RC_STRETCHBLT
+%else
 RASTERCAPS      equ RC_BITBLT | RC_BITMAP64 | RC_GDI20_OUTPUT | RC_DI_BITMAP | RC_DIBTODEV
+%endif
+%if PACKED
+DEV_BITS        equ BPP                 ; bits per pixel and planes towards GDI
+DEV_PLANES      equ 1
+%else
+DEV_BITS        equ 1
+DEV_PLANES      equ NPLANES
+%endif
 
 gdiinfo:
         dw      0x0300                  ; dpVersion
         dw      1                       ; dpTechnology = DT_RASDISPLAY
         dw      HSIZE, VSIZE            ; dpHorzSize, dpVertSize (mm)
         dw      XRES, YRES              ; dpHorzRes, dpVertRes
-        dw      1                       ; dpBitsPixel
-        dw      NPLANES                 ; dpPlanes
+        dw      DEV_BITS                ; dpBitsPixel
+        dw      DEV_PLANES              ; dpPlanes
         dw      -1                      ; dpNumBrushes
         dw      NCOLORS*5               ; dpNumPens
         dw      0                       ; futureuse
@@ -50,15 +65,23 @@ gdiinfo:
         dw      96, 96                  ; dpLogPixelsX, Y
         dw      4                       ; dpDCManage
         dw      0, 0, 0, 0, 0           ; futureuse3..7
+%if BPP = 8
+        dw      256, 20, 18             ; dpPalColors, dpPalReserved, dpPalResolution
+%else
         dw      0, 0, 0                 ; dpPalColors, dpPalReserved, dpPalResolution
+%endif
 GDIINFO_SIZE equ $-gdiinfo
 
 PDEV_SIZE equ 0x23
 pdevice:
         dw      0x2000                  ; bmType (non-zero: device)
         dw      XRES, YRES
-        dw      XRES/8                  ; bmWidthBytes
-        db      NPLANES, 1
+%if PACKED
+        dw      XRES*ELEM               ; bmWidthBytes
+%else
+        dw      XRES/8
+%endif
+        db      DEV_PLANES, DEV_BITS
         dw      0, 0                    ; bmBits
         dd      0                       ; bmWidthPlanes
         dd      0                       ; bmlpPDevice
@@ -104,7 +127,7 @@ Enable:
         mov     [saved_mode], al
         call    get_repaint_proc
         call    set_video_mode
-        jc      no_mode                 ; no usable 256-colour mode: does not return
+        jc      no_mode                 ; no usable mode: does not return
         call    hook_2f
         test    word [winflags], WF_PMODE
         jz      .nvdd
@@ -137,7 +160,13 @@ no_mode:
         jmp     .h
 no_mode_msg:
         db      13, 10, 'Windows display driver: the video BIOS offers no ', RES_X, 'x', RES_Y
+%if BPP = 16
+        db      ' HiColor (16 bpp)', 13, 10
+%elif BPP = 32
+        db      ' TrueColor (32 bpp)', 13, 10
+%else
         db      ' 256-colour', 13, 10
+%endif
         db      'VESA mode (and no QEMU/Bochs VBE adapter was found).', 13, 10, 13, 10
         db      'Reset the computer and select a lower resolution in SYSTEM.INI,', 13, 10
         db      'or load a VESA BIOS extension such as UNIVBE first.', 13, 10, 0

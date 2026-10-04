@@ -28,6 +28,12 @@ EXPORTS = [
     ('FastBorder', 17, 'FASTBORDER'), ('SetAttribute', 18, 'SETATTRIBUTE'),
     ('DeviceBitmapBits', 19, 'DEVICEBITMAPBITS'), ('CreateBitmap', 20, 'CREATEBITMAP'),
     ('DIBScreenBlt', 21, 'DIBSCREENBLT'),
+    # 256-colour builds only
+    ('SetPalette', 22, 'SETPALETTE'), ('GetPalette', 23, 'GETPALETTE'),
+    ('SetPaletteTranslate', 24, 'SETPALETTETRANSLATE'),
+    ('GetPaletteTranslate', 25, 'GETPALETTETRANSLATE'), ('UpdateColors', 26, 'UPDATECOLORS'),
+    # HiColor / TrueColor builds only
+    ('StretchBlt', 27, 'STRETCHBLT'),
     ('Output', 90, 'DO_POLYLINES'), ('Output', 91, 'DO_SCANLINES'),
     ('SaveScreenBitmap', 92, 'SAVESCREENBITMAP'),
     ('Inquire', 101, 'INQUIRE'), ('SetCursor', 102, 'SETCURSOR'),
@@ -62,6 +68,12 @@ def build(binfile, mapfile, outfile, description, template):
     code_syms, data_syms = syms['CODE'], syms.get('DATA', {})
     code_len = (code_syms['code_end'] + 15) & ~15
     code, data = raw[:code_len], raw[code_len:]
+    # the data segment's tail (from data_init_end) is all zeros: not stored in
+    # the file, the loader allocates and clears it (minimum allocation)
+    data_alloc = len(data)
+    if 'data_init_end' in data_syms:
+        data = data[:data_syms['data_init_end']]
+        assert not any(raw[code_len + len(data):]), 'non-zero data after data_init_end'
 
     # ---- relocations (code segment only)
     modules = []
@@ -111,7 +123,7 @@ def build(binfile, mapfile, outfile, description, template):
     # ---- entry table: every export lives in fixed segment 1;
     # flag 3 = exported + uses the shared data segment (the loader patches the
     # "mov ax,ds / nop" prologue into "mov ax,DGROUP")
-    ords = {o: code_syms[s] for s, o, n in EXPORTS}
+    ords = {o: code_syms[s] for s, o, n in EXPORTS if s in code_syms}
     entry = bytearray()
     ordn = 1
     maxord = max(ords)
@@ -133,7 +145,7 @@ def build(binfile, mapfile, outfile, description, template):
     entry += b'\0'
 
     nonres = pstr(description) + b'\0\0'
-    for s, o, n in EXPORTS:
+    for s, o, n in [e for e in EXPORTS if e[0] in code_syms]:
         nonres += pstr(n) + struct.pack('<H', o)
     nonres += b'\0'
 
@@ -167,7 +179,7 @@ def build(binfile, mapfile, outfile, description, template):
 
     cflags = 0x0D60 | (0x0100 if relocs else 0)        # fixed, pure, preload
     segtab = struct.pack('<HHHH', code_pos >> ALIGN, len(code), cflags, len(code))
-    segtab += struct.pack('<HHHH', data_pos >> ALIGN, len(data), 0x0C61, len(data))
+    segtab += struct.pack('<HHHH', data_pos >> ALIGN, len(data), 0x0C61, data_alloc & 0xFFFF)
 
     h = bytearray(0x40)
     h[0:2] = b'NE'
@@ -194,7 +206,7 @@ def build(binfile, mapfile, outfile, description, template):
     for (eo, rd), rp in zip(res_items, res_pos):
         out[rp:rp + len(rd)] = rd
     open(outfile, 'wb').write(out)
-    return len(code), len(data), len(relocs)
+    return len(code), data_alloc, len(relocs)
 
 
 if __name__ == '__main__':
