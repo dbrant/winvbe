@@ -1,0 +1,936 @@
+
+- NASM Map file ---------------------------------------------------------------
+
+Source file:  vbe.asm
+Output file:  E:\Systems\Dos\qemu\win21\win3vbe\src\out\VBE1920.bin
+
+-- Symbols --------------------------------------------------------------------
+
+---- No Section ---------------------------------------------------------------
+
+Value     Name
+00000010  NCOLORS
+0000000F  CMASK
+0000000B  PSHIFT
+00000800  PITCH
+00000005  LSHIFT
+0000001F  LPBMASK
+000001CE  VBE_INDEX
+000001CF  VBE_DATA
+00000000  VBEI_ID
+00000001  VBEI_XRES
+00000002  VBEI_YRES
+00000003  VBEI_BPP
+00000004  VBEI_ENABLE
+00000005  VBEI_BANK
+00000006  VBEI_VWIDTH
+00000007  VBEI_VHEIGHT
+00000000  VK_NONE
+00000001  VK_DISPI
+00000002  VK_VBE
+00000000  bmType
+00000002  bmWidth
+00000004  bmHeight
+00000006  bmWidthBytes
+00000008  bmPlanes
+00000009  bmBitsPixel
+0000000A  bmBits
+0000000E  bmWidthPlanes
+00000012  bmlpPDevice
+00000016  bmSegmentIndex
+00000018  bmScanSegment
+0000001A  bmFillBytes
+00000000  dmRop2
+00000002  dmBkMode
+00000004  dmBkColor
+00000008  dmTextColor
+0000000C  dmTBreakExtra
+0000000E  dmBreakExtra
+00000010  dmBreakErr
+00000012  dmBreakRem
+00000014  dmBreakCount
+00000016  dmCharExtra
+00000002  OPAQUE
+00000000  PEN_COLOR
+00000004  PEN_STYLE
+00000006  PEN_SIZE
+00000000  BR_COLOR
+00000040  BR_MONO
+00000048  BR_STYLE
+00000049  BR_FLAGS
+0000004A  BR_FG
+0000004B  BR_FGMONO
+0000004C  BR_SIZE
+00000001  BRF_HATCH
+00000000  SURF
+00000000  SURF.kind
+00000001  SURF.planes
+00000002  SURF.width
+00000004  SURF.height
+00000006  SURF.wbytes
+00000008  SURF.boff
+0000000A  SURF.bseg
+0000000C  SURF.wplanes
+0000000E  SURF.segidx
+00000010  SURF.scanseg
+00000012  SURF.sstride
+00000014  SURF_size
+00000000  SK_SCREEN
+00000001  SK_MONO
+00000002  SK_COLOR
+000007C0  ROWBUF
+00000780  MAXW
+00000001  WF_PMODE
+00000020  WF_ENHANCED
+00000270  HSIZE
+0000015F  VSIZE
+00000001  RC_BITBLT
+00000008  RC_BITMAP64
+00000010  RC_GDI20_OUTPUT
+00000080  RC_DI_BITMAP
+00000200  RC_DIBTODEV
+00000299  RASTERCAPS
+0000006E  GDIINFO_SIZE
+00000023  PDEV_SIZE
+00000014  en_lpDevice
+00000012  en_Style
+00000002  BRF_SOLID
+00000014  ro_lpDestDev
+00000012  ro_Style
+0000000E  ro_lpIn
+0000000A  ro_lpOut
+00000006  ro_lpXForm
+00000008  QUERYESCSUPPORT
+00000005  GETCOLORTABLE
+0000000E  eo_style
+0000000A  eo_callback
+00000006  eo_data
+00000000  STDMODE
+000003DE  MAXMODES
+00000400  DOSBUF_SIZE
+00000004  NB
+00001000  ROPTAB_SIZE
+00000001  ROPF_P
+00000002  ROPF_S
+00000004  ROPF_D
+00000020  CUR_W
+00000020  CUR_H
+00000022  bb_lpDst
+00000020  bb_dx
+0000001E  bb_dy
+0000001A  bb_lpSrc
+00000018  bb_sx
+00000016  bb_sy
+00000014  bb_w
+00000012  bb_h
+0000000E  bb_rop
+0000000A  bb_lpBrush
+00000006  bb_lpDM
+0000001E  fb_lpRect
+0000001C  fb_bw
+0000001A  fb_bh
+00000016  fb_rop
+00000012  fb_lpDst
+0000000E  fb_lpBrush
+0000000A  fb_lpDM
+00000006  fb_lpClip
+0000001E  op_lpDst
+0000001C  op_style
+0000001A  op_count
+00000016  op_lpPoints
+00000012  op_lpPen
+0000000E  op_lpBrush
+0000000A  op_lpDM
+00000006  op_lpClip
+00000004  OS_SCANLINES
+00000012  OS_POLYLINE
+0000000B  R2_NOP
+0000002A  et_lpDst
+00000028  et_x
+00000026  et_y
+00000022  et_lpClip
+0000001E  et_lpStr
+0000001C  et_count
+00000018  et_lpFont
+00000014  et_lpDM
+00000010  et_lpXF
+0000000C  et_lpWidths
+00000008  et_lpOpaque
+00000006  et_opts
+00000002  ETO_OPAQUE
+00000004  ETO_CLIPPED
+00000012  px_lpDst
+00000010  px_x
+0000000E  px_y
+0000000A  px_color
+00000006  px_lpDM
+00000010  sl_lpDst
+0000000E  sl_x
+0000000C  sl_y
+00000008  sl_color
+00000006  sl_style
+00000200  DIB_CHUNK
+0000001C  dbb_lpBitmap
+0000001A  dbb_fGet
+00000018  dbb_iStart
+00000016  dbb_cScans
+00000012  dbb_lpBits
+0000000E  dbb_lpbi
+00000022  dsb_lpPDevice
+00000020  dsb_DestX
+0000001E  dsb_DestY
+0000001C  dsb_StartScan
+0000001A  dsb_NumScans
+00000016  dsb_lpClip
+0000000E  dsb_lpBits
+0000000A  dsb_lpbi
+
+
+---- Section CODE -------------------------------------------------------------
+
+Real              Virtual           Name
+               0                 0  dataseg
+               2                 2  old2f
+               6                 6  LibInit
+              11                11  ..@__RW_KERNEL_178_1
+              17                17  ..@__RW_KERNEL_174_2
+              1D                1D  ..@__RW_KERNEL_181_3
+              23                23  ..@__RW_KERNEL_114_4
+              2C                2C  cs_write_word
+              33                33  ..@__RF_KERNEL_170_5
+              44                44  ..@__RF_KERNEL_176_6
+              4C                4C  gdiinfo
+              BA                BA  pdevice
+              DD                DD  Enable
+             105               105  Enable.init
+             135               135  Enable.nvdd
+             13D               13D  Enable.done
+             148               148  no_mode
+             150               150  no_mode.l
+             161               161  no_mode.h
+             165               165  no_mode_msg
+             25D               25D  Disable
+             27F               27F  Disable.nvdd
+             29A               29A  hook_2f
+             2C9               2C9  hook_2f.r
+             2CA               2CA  unhook_2f
+             2E2               2E2  unhook_2f.r
+             2E3               2E3  int2f_handler
+             2F2               2F2  int2f_handler.bg
+             31E               31E  int2f_handler.fg
+             341               341  int2f_handler.done
+             34E               34E  get_repaint_proc
+             35E               35E  ..@__RF_KERNEL_47_7
+             370               370  ..@__RF_KERNEL_50_8
+             37B               37B  get_repaint_proc.r
+             37C               37C  request_repaint
+             389               389  request_repaint.now
+             39B               39B  request_repaint.r
+             39C               39C  UserRepaintDisable
+             3C2               3C2  UserRepaintDisable.r
+             3CD               3CD  rgb_to_phys
+             3E9               3E9  rgb_to_phys.r
+             3EC               3EC  nearest16
+             408               408  nearest16x
+             416               416  nearest16x.l
+             463               463  nearest16x.n
+             471               471  dither16
+             49F               49F  dither16.pick
+             4E6               4E6  dither16.er
+             50C               50C  dither16.s1
+             51F               51F  dither16.s2
+             536               536  dither16.s3
+             53D               53D  dither16.done
+             540               540  dither16.lum
+             57C               57C  rgbtab
+             5AC               5AC  is_mono_dev
+             5B9               5B9  is_mono_dev.no
+             5C2               5C2  phys_to_rgb
+             5D5               5D5  phys_to_rgb.r
+             5D6               5D6  phys_to_rgb.color
+             5EA               5EA  ColorInfo
+             618               618  ColorInfo.fromphys
+             61B               61B  ColorInfo.ret
+             62C               62C  RealizeObject
+             65D               65D  RealizeObject.pen
+             660               660  RealizeObject.size
+             66C               66C  RealizeObject.done
+             677               677  realize_pen
+             69C               69C  realize_pen.w
+             6A4               6A4  realize_pen.st
+             6AA               6AA  realize_brush
+             6D6               6D6  realize_brush.hollow
+             6DD               6DD  realize_brush.hatch
+             703               703  realize_brush.hok
+             70C               70C  realize_brush.hrow
+             71B               71B  realize_brush.hpix
+             725               725  realize_brush.hbg
+             734               734  realize_brush.pattern
+             762               762  realize_brush.prow
+             770               770  realize_brush.rotate
+             777               777  pattern_row
+             799               799  pattern_row.m
+             7AA               7AA  pattern_row.color
+             7B0               7B0  pattern_row.pl
+             7B7               7B7  pattern_row.px
+             7C2               7C2  pattern_row.z
+             7D7               7D7  pattern_row.mm
+             7E1               7E1  pattern_row.mz
+             7EF               7EF  pattern_row.r
+             7F5               7F5  dither_brush
+             83F               83F  dither_brush.l
+             85B               85B  dither_brush.4
+             872               872  dither_brush.5
+             87B               87B  level
+             882               882  rotate_brush
+             8AF               8AF  rotate_brush.row
+             8C9               8C9  rotate_brush.col
+             8E9               8E9  rotate_brush.r
+             8EA               8EA  check_solid
+             8F6               8F6  check_solid.l
+             907               907  check_solid.m
+             929               929  check_solid.no
+             92A               92A  hatchtab
+             95A               95A  bayer
+             99A               99A  EnumDFonts
+             9A0               9A0  DeviceBitmap
+             9A5               9A5  SetAttribute
+             9AA               9AA  DeviceMode
+             9B0               9B0  Inquire
+             9D9               9D9  Control
+             A02               A02  Control.gct
+             A2B               A2B  Control.yes
+             A2E               A2E  Control.done
+             A39               A39  EnumObj
+             A5B               A5B  EnumObj.pens
+             A5D               A5D  EnumObj.ps
+             A5F               A5F  EnumObj.pc
+             A88               A88  EnumObj.brushes
+             A8A               A8A  EnumObj.bs
+             AAA               AAA  EnumObj.bh
+             AC9               AC9  EnumObj.rgb
+             ADA               ADA  EnumObj.call
+             AF4               AF4  EnumObj.done
+             AFF               AFF  set_video_mode
+             B10               B10  set_video_mode.found
+             B10               B10  set_video_mode.known
+             B14               B14  set_video_mode.r
+             B15               B15  restore_video_mode
+             B21               B21  restore_video_mode.vbe
+             B3D               B3D  restore_video_mode.common
+             B4A               B4A  leave_video_mode
+             B5C               B5C  leave_video_mode.r
+             B5D               B5D  vbe_call
+             B75               B75  vbe_call.pm
+             BB4               BB4  vbe_call.fail
+             BB8               BB8  rm_ptr_sel
+             BC4               BC4  rm_ptr_sel.pm
+             BD0               BD0  rm_ptr_sel.d
+             BE1               BE1  rm_ptr_sel.f
+             BE5               BE5  try_vbe
+             BEB               BEB  ..@__RF_KERNEL_184_9
+             C03               C03  ..@__RF_KERNEL_185_10
+             C09               C09  try_vbe.nobuf
+             C0B               C0B  try_vbe_body
+             C59               C59  try_vbe_body.cp
+             C6F               C6F  try_vbe_body.cpd
+             C72               C72  try_vbe_body.next
+             C82               C82  try_vbe_body.std
+             C82               C82  try_vbe_body.fail
+             C84               C84  try_vbe_body.found
+             CB1               CB1  try_vbe_body.w2
+             CCA               CCA  try_vbe_body.w3
+             CED               CED  try_vbe_body.w4
+             D09               D09  try_vbe_body.wok
+             D2E               D2E  try_vbe_body.ws
+             D62               D62  try_vbe_body.wg
+             D6C               D6C  try_vbe_body.gd
+             DC9               DC9  try_vbe_body.ok
+             DCB               DCB  win_sel
+             DDD               DDD  win_sel.b
+             DE5               DE5  win_sel.ok
+             DE7               DE7  win_sel.no
+             DE9               DE9  vbe_check_mode
+             E58               E58  vbe_check_mode.noext
+             E66               E66  vbe_check_mode.yes
+             E69               E69  vbe_check_mode.no
+             E6C               E6C  vbe_setwin
+             E8F               E8F  vbe_setwin.int
+             E95               E95  dispi_present
+             EAA               EAA  dispi_present.no
+             EAC               EAC  try_dispi
+             ECD               ECD  try_dispi.s
+             EE9               EE9  try_dispi.no
+             EEB               EEB  dispi_set
+             F4A               F4A  set_bank
+             F51               F51  set_bank.sw
+             F85               F85  set_bank.d
+             F8A               F8A  set_bank.dispi
+             F91               F91  scr_span
+             FD8               FD8  scr_span.ok
+             FDF               FDF  scr_read
+             FED               FED  scr_read.l
+            1016              1016  scr_read.off
+            1017              1017  scr_write
+            1023              1023  scr_write.l
+            1048              1048  scr_write.off
+            1049              1049  scr_fill
+            1053              1053  scr_fill.l
+            1081              1081  scr_fill.off
+            1082              1082  scr_getpix
+            109F              109F  scr_getpix.off
+            10A2              10A2  scr_putpix
+            10C0              10C0  scr_putpix.off
+            10C1              10C1  clear_screen
+            10DF              10DF  clear_screen.b
+            1104              1104  set_palette
+            1111              1111  set_palette.l
+            1119              1119  palette6
+            1149              1149  load_surf
+            1177              1177  load_surf.m
+            11A6              11A6  load_surf.scr
+            11B7              11B7  load_surf.r
+            11BA              11BA  same_surf
+            11D7              11D7  same_surf.r
+            11D8              11D8  row_addr
+            11ED              11ED  row_addr.huge
+            1208              1208  read_row
+            121A              121A  read_row.mem
+            1244              1244  read_row.p0
+            1274              1274  read_row.pl
+            127C              127C  read_row.p1
+            12B4              12B4  read_row.done
+            12BC              12BC  write_row
+            12CE              12CE  write_row.mem
+            1339              1339  write_row.mp
+            133B              133B  write_row.plane
+            1345              1345  write_row.col
+            134E              134E  write_row.nl
+            1393              1393  write_row.full
+            13AC              13AC  write_row.done
+            13B4              13B4  get_pixel
+            13C1              13C1  get_pixel.mem
+            13DA              13DA  get_pixel.l
+            13F4              13F4  get_pixel.r
+            13F8              13F8  put_pixel
+            1405              1405  put_pixel.mem
+            141D              141D  put_pixel.l
+            142A              142A  put_pixel.one
+            142D              142D  put_pixel.n
+            1435              1435  put_pixel.r
+            1439              1439  fill_row_val
+            1448              1448  fill_row_val.mem
+            144B              144B  fill_row_val.mc
+            1459              1459  fill_row_val.mn
+            1476              1476  fill_row_val.md
+            1477              1477  fill_row_val.r
+            147D              147D  exptab
+            1C7D              1C7D  rop_flags
+            1C8F              1C8F  rop_flags.s
+            1C9E              1C9E  rop_flags.d
+            1CAC              1CAC  rop_flags.r
+            1CAE              1CAE  build_rop_table
+            1CBC              1CBC  build_rop_table.build
+            1CCC              1CCC  build_rop_table.l
+            1CD0              1CD0  build_rop_table.b
+            1CDF              1CDF  build_rop_table.k1
+            1CE8              1CE8  build_rop_table.k2
+            1CF1              1CF1  build_rop_table.k3
+            1D1B              1D1B  rop_eval
+            1D24              1D24  rop_eval.l
+            1D50              1D50  rop_eval.r
+            1D58              1D58  rop2_to_rop3
+            1D67              1D67  rop2tab
+            1D77              1D77  make_pen_table
+            1D88              1D88  make_pen_table.l
+            1D9F              1D9F  cur_clip
+            1DAE              1DAE  cur_clip.a
+            1DCC              1DCC  cur_clip.b
+            1DD2              1DD2  cur_clip.none
+            1DD4              1DD4  cur_draw
+            1DFE              1DFE  cur_draw.row
+            1E48              1E48  cur_draw.px
+            1E51              1E51  cur_draw.keep
+            1E58              1E58  cur_draw.nx
+            1E76              1E76  cur_draw.nrow
+            1E7C              1E7C  cur_draw.done
+            1E84              1E84  cur_draw.r
+            1E85              1E85  cur_erase
+            1E96              1E96  cur_erase.row
+            1EB8              1EB8  cur_erase.nrow
+            1EBE              1EBE  cur_erase.done
+            1EC6              1EC6  cur_erase.r
+            1EC7              1EC7  cur_update
+            1EE1              1EE1  cur_update.redraw
+            1EE4              1EE4  cur_update.notshown
+            1EE8              1EE8  excl_begin
+            1F16              1F16  excl_begin.r
+            1F18              1F18  excl_all
+            1F2E              1F2E  excl_end
+            1F39              1F39  SetCursor
+            1F5E              1F5E  SetCursor.set
+            1F9E              1F9E  SetCursor.done
+            1FAE              1FAE  SetCursor.copy
+            1FC1              1FC1  SetCursor.pre
+            1FC8              1FC8  SetCursor.cr
+            1FD7              1FD7  SetCursor.cw
+            1FD9              1FD9  SetCursor.cb
+            1FE3              1FE3  SetCursor.cs
+            1FE7              1FE7  SetCursor.cx
+            1FF2              1FF2  SetCursor.cd
+            1FF4              1FF4  MoveCursor
+            202D              202D  MoveCursor.done
+            2038              2038  CheckCursor
+            2057              2057  CheckCursor.done
+            2062              2062  cursor_off
+            2068              2068  get_dm_colors
+            20BB              20BB  get_dm_colors.r
+            20BC              20BC  build_prow
+            20C5              20C5  build_prow.ok
+            20DA              20DA  build_prow.nh
+            20E3              20E3  build_prow.mr
+            20EE              20EE  build_prow.mc
+            210C              210C  build_prow.ms
+            2120              2120  build_prow.color
+            2134              2134  build_prow.cs
+            2142              2142  build_prow.sol
+            2156              2156  build_prow.r
+            215C              215C  solid_prow
+            2186              2186  fill_pb
+            21A2              21A2  fill_pb.l
+            21B6              21B6  convert_sb
+            21D2              21D2  convert_sb.l1
+            21DB              21DB  convert_sb.s1
+            21E2              21E2  convert_sb.c2
+            21E6              21E6  convert_sb.l2
+            21EE              21EE  convert_sb.s2
+            21F3              21F3  convert_sb.e
+            21F5              21F5  convert_sb.r
+            21F6              21F6  clip_blt
+            220B              220B  clip_blt.1
+            2220              2220  clip_blt.2
+            2231              2231  clip_blt.3
+            2242              2242  clip_blt.4
+            225E              225E  clip_blt.5
+            2273              2273  clip_blt.6
+            2284              2284  clip_blt.7
+            2295              2295  clip_blt.chk
+            22A5              22A5  clip_blt.empty
+            22A7              22A7  blt_exclude
+            22CE              22CE  blt_exclude.s
+            22F7              22F7  blt_exclude.r
+            22F8              22F8  blt_unexclude
+            2307              2307  blt_unexclude.r
+            2308              2308  blt_rows
+            2313              2313  blt_rows.chunk
+            233D              233D  blt_rows.rtl
+            2348              2348  blt_rows.r1
+            2353              2353  blt_rows.ltr
+            2355              2355  blt_rows.l1
+            2364              2364  blt_rows.l2
+            2373              2373  blt_rows.rest
+            2386              2386  blt_rows.do
+            23A2              23A2  blt_rows1
+            23C7              23C7  blt_rows1.fill
+            23DD              23DD  blt_rows1.fl
+            23E5              23E5  blt_rows1.gen
+            23F3              23F3  blt_rows1.nt
+            2421              2421  blt_rows1.loop
+            2425              2425  blt_rows1.rl
+            244A              244A  blt_rows1.nos
+            2468              2468  blt_rows1.ncc
+            2472              2472  blt_rows1.nop
+            2481              2481  blt_rows1.nf0
+            248E              248E  blt_rows1.nod
+            24AA              24AA  blt_rows1.next
+            24B8              24B8  BitBlt
+            2531              2531  BitBlt.s1
+            253B              253B  BitBlt.nosrc
+            255B              255B  BitBlt.nopat
+            2564              2564  BitBlt.ok
+            2572              2572  BitBlt.fail
+            257F              257F  FastBorder
+            25C4              25C4  FastBorder.nopat
+            260B              260B  FastBorder.ne
+            266A              266A  FastBorder.done
+            2678              2678  fb_piece
+            2680              2680  fb_piece.r
+            2681              2681  set_clip
+            26A7              26A7  set_clip.a
+            26B4              26B4  set_clip.b
+            26C1              26C1  set_clip.c
+            26CE              26CE  set_clip.r
+            26CF              26CF  clip_rect
+            26D8              26D8  clip_rect.a
+            26E2              26E2  clip_rect.b
+            26EC              26EC  clip_rect.c
+            26F6              26F6  clip_rect.d
+            270F              270F  clip_rect.e
+            2711              2711  dbg_surf
+            2712              2712  Output
+            274F              274F  Output.scan
+            2754              2754  Output.poly
+            2757              2757  Output.ok
+            275A              275A  Output.done
+            2765              2765  do_scanlines
+            278A              278A  do_scanlines.pen
+            27AC              27AC  do_scanlines.pc
+            27AF              27AF  do_scanlines.pat
+            27CC              27CC  do_scanlines.nt
+            2821              2821  do_scanlines.ne
+            2827              2827  do_scanlines.seg
+            2843              2843  do_scanlines.a
+            284D              284D  do_scanlines.b
+            2854              2854  do_scanlines.sch
+            2875              2875  do_scanlines.slast
+            2878              2878  do_scanlines.nx
+            2881              2881  do_scanlines.r
+            2882              2882  scan_span
+            28B6              28B6  scan_span.gen
+            28D4              28D4  scan_span.nod
+            28EF              28EF  scan_span.ev
+            291C              291C  scan_span.tl
+            2934              2934  scan_span.tk
+            293D              293D  scan_span.w
+            2944              2944  do_polyline
+            2973              2973  do_polyline.c
+            29D9              29D9  do_polyline.ne
+            29EA              29EA  do_polyline.seg
+            2A1A              2A1A  do_polyline.done
+            2A1D              2A1D  do_polyline.r
+            2A1E              2A1E  draw_line
+            2A35              2A35  draw_line.1
+            2A4F              2A4F  draw_line.2
+            2A6F              2A6F  draw_line.xl
+            2A84              2A84  draw_line.xn
+            2A88              2A88  draw_line.ymaj
+            2A96              2A96  draw_line.yl
+            2AAB              2AAB  draw_line.yn
+            2AAE              2AAE  draw_line.r
+            2AAF              2AAF  plot
+            2ACF              2ACF  plot.on
+            2AFE              2AFE  plot.skip
+            2B0E              2B0E  plot.r
+            2B11              2B11  stylemasks
+            2B25              2B25  StrBlt
+            2B30              2B30  ExtTextOut
+            2B56              2B56  ExtTextOut.draw
+            2B86              2B86  ExtTextOut.cc
+            2BB7              2BB7  ExtTextOut.noopq
+            2BCA              2BCA  ExtTextOut.nocl
+            2C13              2C13  ExtTextOut.ne
+            2C25              2C25  ExtTextOut.tch
+            2C3E              2C3E  ExtTextOut.tw
+            2C4B              2C4B  ExtTextOut.rl
+            2C68              2C68  ExtTextOut.ok
+            2C6C              2C6C  ExtTextOut.ret
+            2C77              2C77  fill_grect
+            2CA1              2CA1  fill_grect.ne
+            2CB3              2CB3  fill_grect.l
+            2CBE              2CBE  and_clip
+            2CCA              2CCA  and_clip.a
+            2CD7              2CD7  and_clip.b
+            2CE4              2CE4  and_clip.c
+            2CF1              2CF1  and_clip.r
+            2CF2              2CF2  text_setup_font
+            2D03              2D03  text_char
+            2D25              2D25  text_char.def
+            2D29              2D29  text_char.ok
+            2D3D              2D3D  text_char.nb
+            2D58              2D58  text_char.fw
+            2D6C              2D6C  text_char.r
+            2D70              2D70  text_width
+            2D78              2D78  text_width.l
+            2D86              2D86  text_width.e
+            2D8D              2D8D  text_row
+            2DAD              2DAD  text_row.ch
+            2DDB              2DDB  text_row.col
+            2DF0              2DF0  text_row.sk
+            2DF9              2DF9  text_row.same
+            2DFB              2DFB  text_row.gd
+            2E04              2E04  text_row.comp
+            2E21              2E21  text_row.opq
+            2E31              2E31  text_row.mix
+            2E39              2E39  text_row.m
+            2E44              2E44  text_row.mn
+            2E52              2E52  GetCharWidth
+            2E72              2E72  GetCharWidth.l
+            2E86              2E86  GetCharWidth.def
+            2E89              2E89  GetCharWidth.ok
+            2E9C              2E9C  GetCharWidth.fail
+            2E9E              2E9E  GetCharWidth.r
+            2EA9              2EA9  index_mono
+            2ED4              2ED4  index_mono.r
+            2ED7              2ED7  Pixel
+            2F23              2F23  Pixel.ne
+            2F41              2F41  Pixel.gc
+            2F4A              2F4A  Pixel.gr
+            2F53              2F53  Pixel.set
+            2F6B              2F6B  Pixel.sc
+            2F8F              2F8F  Pixel.oob
+            2F94              2F94  Pixel.done
+            2F9F              2F9F  ScanLR
+            2FD8              2FD8  ScanLR.c
+            2FFF              2FFF  ScanLR.ne
+            300C              300C  ScanLR.rc
+            301D              301D  ScanLR.rc1
+            302D              302D  ScanLR.rl
+            3040              3040  ScanLR.rfound
+            3044              3044  ScanLR.left
+            3048              3048  ScanLR.lc
+            3057              3057  ScanLR.lc1
+            306F              306F  ScanLR.ll
+            307C              307C  ScanLR.lfound
+            307F              307F  ScanLR.nf
+            3084              3084  ScanLR.found
+            3086              3086  ScanLR.fin
+            308D              308D  ScanLR.oob
+            3090              3090  ScanLR.done
+            30A2              30A2  ScanLR.test
+            30B4              30B4  ScanLR.eq
+            30BC              30BC  ScanLR.no
+            30BE              30BE  dib_parse
+            30FF              30FF  dib_parse.info
+            3146              3146  dib_parse.chk
+            315D              315D  dib_parse.ok
+            3179              3179  dib_parse.nc
+            31A8              31A8  dib_parse.bad
+            31A9              31A9  dib_parse.r
+            31AE              31AE  dib_build_xlat
+            31B7              31B7  dib_build_xlat.l
+            31D4              31D4  dib_build_xlat.c
+            31E2              31E2  dib_build_xlat.r
+            31EB              31EB  dib_ptr
+            3211              3211  dib_copy_in
+            3216              3216  dib_copy_in.l
+            321F              321F  dib_copy_in.all
+            3221              3221  dib_copy_in.m
+            323A              323A  dib_copy_out
+            3241              3241  dib_copy_out.l
+            324E              324E  dib_copy_out.all
+            3250              3250  dib_copy_out.m
+            3265              3265  dib_span
+            329F              329F  dib_unpack
+            32C8              32C8  dib_unpack.b24
+            32EC              32EC  dib_unpack.new
+            32F8              32F8  dib_unpack.c
+            3308              3308  dib_unpack.st
+            330F              330F  dib_unpack.b8
+            331D              331D  dib_unpack.b4
+            3340              3340  dib_unpack.b1
+            3345              3345  dib_unpack.b1b
+            335C              335C  dib_unpack.r
+            335F              335F  dib_build_gout
+            3364              3364  dib_build_gout.l
+            337C              337C  dib_build_gout.col
+            33A9              33A9  dib_build_gout.st
+            33B7              33B7  dib_pack
+            33ED              33ED  dib_pack.b24
+            341C              341C  dib_pack.b8
+            342D              342D  dib_pack.b4
+            3450              3450  dib_pack.b1
+            3454              3454  dib_pack.b1b
+            346C              346C  dib_pack.out
+            347C              347C  dib_put_ctab
+            34A3              34A3  dib_put_ctab.go
+            34A5              34A5  dib_put_ctab.l
+            34BF              34BF  dib_put_ctab.c
+            34E0              34E0  dib_put_ctab.st
+            34F8              34F8  dib_put_ctab.t
+            34FE              34FE  dib_put_ctab.r
+            3502              3502  DeviceBitmapBits
+            3539              3539  DeviceBitmapBits.nm
+            3556              3556  DeviceBitmapBits.n
+            3565              3565  DeviceBitmapBits.w
+            357B              357B  DeviceBitmapBits.get
+            3589              3589  DeviceBitmapBits.go
+            358B              358B  DeviceBitmapBits.row
+            35A8              35A8  DeviceBitmapBits.chunk
+            35B8              35B8  DeviceBitmapBits.cw
+            35D2              35D2  DeviceBitmapBits.g
+            35E2              35E2  DeviceBitmapBits.nc
+            35E9              35E9  DeviceBitmapBits.nrow
+            35EC              35EC  DeviceBitmapBits.ret
+            35F1              35F1  DeviceBitmapBits.fail
+            35F3              35F3  DeviceBitmapBits.done
+            35FE              35FE  DIBScreenBlt
+            366C              366C  DIBScreenBlt.c1
+            3678              3678  DIBScreenBlt.c2
+            3684              3684  DIBScreenBlt.c3
+            3690              3690  DIBScreenBlt.scr
+            369B              369B  DIBScreenBlt.s1
+            36A6              36A6  DIBScreenBlt.s2
+            36B2              36B2  DIBScreenBlt.s3
+            36BE              36BE  DIBScreenBlt.s4
+            36EA              36EA  DIBScreenBlt.row
+            3706              3706  DIBScreenBlt.chunk
+            371F              371F  DIBScreenBlt.cw
+            3745              3745  DIBScreenBlt.nrow
+            374E              374E  DIBScreenBlt.none
+            3753              3753  DIBScreenBlt.fail
+            3755              3755  DIBScreenBlt.done
+            3760              3760  CreateBitmap
+            3766              3766  SaveScreenBitmap
+            376B              376B  code_end
+
+---- Section DATA -------------------------------------------------------------
+
+Real              Virtual           Name
+            3770                 0  saved_mode
+            3771                 1  enabled
+            3772                 2  hooked_2f
+            3773                 3  repaint_off
+            3774                 4  repaint_due
+            3775                 5  dispi_bank
+            3776                 6  winflags
+            3778                 8  sel_a000
+            377A                 A  sel_b000
+            377C                 C  ahincr
+            377E                 E  dos_psel
+            3780                10  dos_rseg
+            3782                12  vbe_di
+            3784                14  repaint_proc
+            3788                18  user_name
+            3790                20  rmregs
+            37C4                54  cur_bank
+            37C6                56  vmode_kind
+            37C7                57  win_first
+            37C8                58  win_both
+            37C9                59  bank_shift
+            37CA                5A  vbe_mode
+            37CC                5C  bank_mult
+            37CE                5E  win_rseg
+            37D0                60  win_wseg
+            37D4                64  win_mask
+            37D8                68  win_func
+            37DC                6C  scr_pitch
+            37E0                70  pat_planes
+            37E1                71  lvl_r
+            37E2                72  lvl_g
+            37E3                73  lvl_b
+            37E4                74  lvl_l
+            37E5                75  near_idx
+            37E8                78  d16_t
+            37F4                84  d16_a
+            3800                90  d16_dx
+            380C                9C  d16_e
+            3818                A8  d16_plan
+            3858                E8  tmp_pat
+            38A0               130  dst
+            38B4               144  src
+            38C8               158  g_x
+            38CA               15A  g_y
+            38CC               15C  g_w
+            38CE               15E  g_h
+            38D0               160  g_sx
+            38D2               162  g_sy
+            38D4               164  g_dir
+            38D6               166  g_row
+            38D8               168  g_bkmode
+            38DA               16A  g_rop2
+            38DC               16C  g_rop
+            38DD               16D  g_ropf
+            38DE               16E  g_conv
+            38DF               16F  g_excl
+            38E0               170  g_bk
+            38E1               171  g_bkm
+            38E2               172  g_fg
+            38E3               173  g_fgm
+            38E4               174  g_psolid
+            38E5               175  g_pval
+            38E6               176  g_hatch
+            38E7               177  g_transp
+            38E8               178  fill_val
+            38E9               179  rop_cached
+            38EA               17A  rop_valid
+            38EC               17C  rr_n
+            38EE               17E  ch_x
+            38F0               180  ch_sx
+            38F2               182  ch_w
+            38F4               184  ch_off
+            38F6               186  wr_x
+            38F8               188  wr_w
+            38FA               18A  wr_pstride
+            38FC               18C  wr_ncols
+            38FE               18E  wr_lmask
+            38FF               18F  wr_rmask
+            3900               190  clip_x0
+            3902               192  clip_y0
+            3904               194  clip_x1
+            3906               196  clip_y1
+            3908               198  fb_l
+            390A               19A  fb_t
+            390C               19C  fb_r
+            390E               19E  fb_b
+            3910               1A0  sc_ptr
+            3912               1A2  sc_cnt
+            3914               1A4  pl_ptr
+            3916               1A6  pl_cnt
+            3918               1A8  ln_x0
+            391A               1AA  ln_y0
+            391C               1AC  ln_x1
+            391E               1AE  ln_y1
+            3920               1B0  ln_dx
+            3922               1B2  ln_dy
+            3924               1B4  ln_sx
+            3926               1B6  ln_sy
+            3928               1B8  ln_style
+            392A               1BA  ln_bkval
+            392B               1BB  ln_rop3
+            392C               1BC  ln_mask
+            3930               1C0  ln_bit
+            3934               1C4  sl_target
+            3935               1C5  tx_brk
+            3936               1C6  tx_fg
+            3937               1C7  tx_bk
+            3938               1C8  tx_count
+            393A               1CA  tx_row
+            393C               1CC  tx_r
+            393E               1CE  tx_cx
+            3940               1D0  ft_seg
+            3942               1D2  ft_h
+            3944               1D4  pentab
+            3954               1E4  fgtab
+            3964               1F4  bktab
+            3974               204  prow
+            39B4               244  pmask
+            39F4               284  cur_busy
+            39F5               285  cur_shown
+            39F6               286  cur_valid
+            39F8               288  cur_hx
+            39FA               28A  cur_hy
+            39FC               28C  cur_x
+            39FE               28E  cur_y
+            3A00               290  cur_sx
+            3A02               292  cur_sy
+            3A04               294  cur_mx
+            3A06               296  cur_my
+            3A08               298  cur_x0
+            3A0A               29A  cur_c0
+            3A0C               29C  cur_cw
+            3A0E               29E  cur_tmp
+            3A2E               2BE  cur_and
+            3AAE               33E  cur_xor
+            3B2E               3BE  cur_save
+            3F30               7C0  roptab
+            4F30              17C0  dib_bits
+            4F34              17C4  dib_ctab
+            4F38              17C8  dib_stride
+            4F3C              17CC  dib_w
+            4F3E              17CE  dib_h
+            4F40              17D0  dib_bpp
+            4F42              17D2  dib_ncol
+            4F44              17D4  c24_rg
+            4F46              17D6  c24_b
+            4F47              17D7  c24_val
+            4F48              17D8  c24_valid
+            4F49              17D9  dib_csize
+            4F4A              17DA  dib_mono
+            4F4B              17DB  gout
+            4F5B              17EB  dib_xlat
+            5060              18F0  DIBRAW
+            5680              1F10  PBUF
+            5E50              26E0  SBUF
+            6620              2EB0  DBUF
+            6DF0              3680  data_end
+

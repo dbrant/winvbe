@@ -1,0 +1,409 @@
+; ---------------------------------------------------------------------------
+; Surfaces: descriptors, row read/write, single pixels
+; All routines expect DS = DGROUP.
+; ---------------------------------------------------------------------------
+
+; load_surf: es:si -> GDI BITMAP or our PDEVICE, bx -> SURF (in DS)
+load_surf:
+        push    ax
+        push    dx
+        cmp     word [es:si+bmType], 0
+        jne     .scr
+        mov     ax, [es:si+bmWidth]
+        mov     [bx+SURF.width], ax
+        mov     ax, [es:si+bmHeight]
+        mov     [bx+SURF.height], ax
+        mov     ax, [es:si+bmWidthBytes]
+        mov     [bx+SURF.wbytes], ax
+        mov     al, [es:si+bmPlanes]
+        mov     [bx+SURF.planes], al
+        mov     byte [bx+SURF.kind], SK_MONO
+        cmp     al, 1
+        je      .m
+        mov     byte [bx+SURF.kind], SK_COLOR
+.m:     mov     ax, [es:si+bmBits]
+        mov     [bx+SURF.boff], ax
+        mov     ax, [es:si+bmBits+2]
+        mov     [bx+SURF.bseg], ax
+        mov     ax, [es:si+bmWidthPlanes]
+        mov     [bx+SURF.wplanes], ax
+        mov     ax, [es:si+bmSegmentIndex]
+        mov     [bx+SURF.segidx], ax
+        mov     ax, [es:si+bmScanSegment]
+        mov     [bx+SURF.scanseg], ax
+        movzx   ax, byte [bx+SURF.planes]
+        mul     word [bx+SURF.wbytes]
+        mov     [bx+SURF.sstride], ax
+        jmp     .r
+.scr:   mov     byte [bx+SURF.kind], SK_SCREEN
+        mov     byte [bx+SURF.planes], NPLANES
+        mov     word [bx+SURF.width], XRES
+        mov     word [bx+SURF.height], YRES
+.r:     pop     dx
+        pop     ax
+        ret
+
+; same_surf: CF=0, ZF=1 if dst and src describe the same surface
+same_surf:
+        mov     al, [dst+SURF.kind]
+        cmp     al, [src+SURF.kind]
+        jne     .r
+        cmp     al, SK_SCREEN
+        je      .r
+        mov     ax, [dst+SURF.boff]
+        cmp     ax, [src+SURF.boff]
+        jne     .r
+        mov     ax, [dst+SURF.bseg]
+        cmp     ax, [src+SURF.bseg]
+.r:     ret
+
+; row_addr: bx -> memory SURF, ax = y  ->  es:di = row (plane 0), dx = plane stride
+; clobbers ax
+; Windows 3.0 stores the planes of a colour bitmap interleaved by scan line.
+row_addr:
+        cmp     word [bx+SURF.segidx], 0
+        jne     .huge
+        mul     word [bx+SURF.sstride]
+        add     ax, [bx+SURF.boff]
+        mov     di, ax
+        mov     es, [bx+SURF.bseg]
+        mov     dx, [bx+SURF.wbytes]
+        ret
+.huge:  xor     dx, dx
+        div     word [bx+SURF.scanseg]
+        push    dx
+        mul     word [bx+SURF.segidx]
+        add     ax, [bx+SURF.bseg]
+        mov     es, ax
+        pop     ax
+        mul     word [bx+SURF.sstride]
+        add     ax, [bx+SURF.boff]
+        mov     di, ax
+        mov     dx, [bx+SURF.wbytes]
+        ret
+
+; ---------------------------------------------------------------------------
+; read_row: bx -> SURF, ax = y, cx = x, dx = w, di -> buffer (DS)
+; Stores w pixel values (colour indices, or 0/1 for mono).  May scribble up to
+; 8 bytes before and after the buffer.  Preserves bx, ds.
+; ---------------------------------------------------------------------------
+read_row:
+        push    ax
+        push    cx
+        push    dx
+        push    si
+        push    di
+        push    es
+        push    bp
+        cmp     byte [bx+SURF.kind], SK_SCREEN
+        jne     .mem
+        call    scr_read
+        jmp     .done
+.mem:   push    dx                      ; w
+        push    di                      ; buffer
+        push    cx                      ; x
+        call    row_addr                ; es:di row, dx plane stride
+        mov     si, di
+        mov     bp, dx                  ; bp = plane stride
+        pop     cx
+        mov     ax, cx
+        shr     ax, 3
+        add     si, ax                  ; first byte
+        and     cx, 7
+        pop     di
+        sub     di, cx                  ; buffer pos of first byte's pixel 0
+        pop     ax
+        add     ax, cx
+        add     ax, 7
+        shr     ax, 3                   ; number of bytes
+        mov     [rr_n], ax
+        mov     dx, ax
+        ; plane 0: store
+        push    si
+        push    di
+        mov     cx, dx
+.p0:    movzx   eax, byte [es:si]
+        inc     si
+        mov     ecx, [cs:exptab+eax*8]
+        mov     [di], ecx
+        mov     ecx, [cs:exptab+eax*8+4]
+        mov     [di+4], ecx
+        add     di, 8
+        dec     dx
+        jnz     .p0
+        pop     di
+        pop     si
+        cmp     byte [bx+SURF.kind], SK_COLOR
+        jne     .done
+        ; further planes: OR in shifted bits
+        mov     cl, 1
+.pl:    add     si, bp
+        mov     dx, [rr_n]
+        push    si
+        push    di
+.p1:    movzx   eax, byte [es:si]
+        inc     si
+        push    dx
+        mov     edx, [cs:exptab+eax*8]
+        shl     edx, cl
+        or      [di], edx
+        mov     edx, [cs:exptab+eax*8+4]
+        shl     edx, cl
+        or      [di+4], edx
+        pop     dx
+        add     di, 8
+        dec     dx
+        jnz     .p1
+        pop     di
+        pop     si
+        inc     cl
+        cmp     cl, [bx+SURF.planes]
+        jb      .pl
+.done:  pop     bp
+        pop     es
+        pop     di
+        pop     si
+        pop     dx
+        pop     cx
+        pop     ax
+        ret
+
+; ---------------------------------------------------------------------------
+; write_row: bx -> SURF, ax = y, cx = x, dx = w, si -> buffer (DS)
+; Preserves bx, ds.
+; ---------------------------------------------------------------------------
+write_row:
+        push    ax
+        push    cx
+        push    dx
+        push    si
+        push    di
+        push    es
+        push    bp
+        cmp     byte [bx+SURF.kind], SK_SCREEN
+        jne     .mem
+        call    scr_write
+        jmp     .done
+.mem:   ; compute column range and masks
+        mov     [wr_x], cx
+        mov     [wr_w], dx
+        push    si
+        call    row_addr                ; es:di, dx = plane stride
+        pop     si
+        mov     [wr_pstride], dx
+        mov     ax, [wr_x]
+        mov     cx, ax
+        shr     ax, 3
+        add     di, ax                  ; first byte column
+        and     cx, 7
+        sub     si, cx                  ; buffer pos of the first column's pixel 0
+        mov     al, 0xFF
+        shr     al, cl
+        mov     [wr_lmask], al
+        mov     ax, [wr_x]
+        add     ax, [wr_w]
+        dec     ax                      ; last pixel x
+        mov     cx, ax
+        and     cl, 7
+        mov     al, 0xFF
+        shr     al, cl
+        not     al                      ; bits 7..(7-cl) set
+        mov     ah, 0x80
+        sar     ah, cl
+        mov     [wr_rmask], ah
+        ; number of columns
+        mov     ax, [wr_x]
+        add     ax, [wr_w]
+        dec     ax
+        shr     ax, 3
+        mov     cx, [wr_x]
+        shr     cx, 3
+        sub     ax, cx
+        inc     ax
+        mov     [wr_ncols], ax
+        cmp     ax, 1
+        jne     .mp
+        mov     al, [wr_lmask]
+        and     [wr_rmask], al
+        mov     byte [wr_lmask], 0xFF   ; single column: use rmask only (applied as last)
+.mp:    xor     cl, cl                  ; plane
+.plane: push    si
+        push    di
+        mov     bp, [wr_ncols]
+        mov     ch, [wr_lmask]
+.col:   cmp     bp, 1
+        jne     .nl
+        and     ch, [wr_rmask]
+.nl:    ; gather plane cl from 8 pixel bytes at ds:si
+        mov     eax, [si]
+        shr     eax, cl
+        and     eax, 0x01010101
+        imul    eax, eax, 0x80402010
+        shr     eax, 28
+        mov     edx, [si+4]
+        shr     edx, cl
+        and     edx, 0x01010101
+        imul    edx, edx, 0x80402010
+        shr     edx, 28
+        shl     al, 4
+        or      al, dl
+        cmp     ch, 0xFF
+        je      .full
+        and     al, ch
+        mov     ah, ch
+        not     ah
+        and     ah, [es:di]
+        or      al, ah
+.full:  mov     [es:di], al
+        inc     di
+        add     si, 8
+        mov     ch, 0xFF
+        dec     bp
+        jnz     .col
+        pop     di
+        pop     si
+        add     di, [wr_pstride]
+        inc     cl
+        cmp     cl, [bx+SURF.planes]
+        jb      .plane
+.done:  pop     bp
+        pop     es
+        pop     di
+        pop     si
+        pop     dx
+        pop     cx
+        pop     ax
+        ret
+
+; ---------------------------------------------------------------------------
+; get_pixel: bx -> SURF, cx = x, ax = y  ->  al = value.  Preserves bx, cx.
+; ---------------------------------------------------------------------------
+get_pixel:
+        push    dx
+        push    di
+        push    es
+        cmp     byte [bx+SURF.kind], SK_SCREEN
+        jne     .mem
+        call    scr_getpix
+        jmp     .r
+.mem:   push    cx
+        push    si
+        call    row_addr                ; es:di, dx = plane stride
+        mov     ax, cx
+        shr     ax, 3
+        add     di, ax
+        and     cl, 7
+        xor     cl, 7                   ; shift count
+        mov     ch, [bx+SURF.planes]
+        xor     ah, ah                  ; result
+        xor     si, si                  ; plane index
+.l:     mov     al, [es:di]
+        shr     al, cl
+        and     al, 1
+        push    cx
+        mov     cx, si
+        shl     al, cl
+        pop     cx
+        or      ah, al
+        add     di, dx
+        inc     si
+        dec     ch
+        jnz     .l
+        mov     al, ah
+        pop     si
+        pop     cx
+.r:     pop     es
+        pop     di
+        pop     dx
+        ret
+
+; put_pixel: bx -> SURF, cx = x, ax = y, dl = value.  Preserves bx, cx, dx.
+put_pixel:
+        push    ax
+        push    di
+        push    es
+        cmp     byte [bx+SURF.kind], SK_SCREEN
+        jne     .mem
+        call    scr_putpix
+        jmp     .r
+.mem:   push    cx
+        push    dx
+        push    dx
+        call    row_addr                ; dx = plane stride
+        mov     ax, cx
+        shr     ax, 3
+        add     di, ax
+        and     cl, 7
+        mov     ch, 0x80
+        shr     ch, cl                  ; bit mask
+        pop     ax                      ; al = value
+        mov     cl, [bx+SURF.planes]
+.l:     shr     al, 1
+        jc      .one
+        not     ch
+        and     [es:di], ch
+        not     ch
+        jmp     .n
+.one:   or      [es:di], ch
+.n:     add     di, dx
+        dec     cl
+        jnz     .l
+        pop     dx
+        pop     cx
+.r:     pop     es
+        pop     di
+        pop     ax
+        ret
+
+; ---------------------------------------------------------------------------
+; fill_row: bx -> SURF, ax = y, cx = x, dx = w, al value -> uses rowbuf DBUF
+; ---------------------------------------------------------------------------
+fill_row_val:                           ; ah = value, ax high? -> value in [fill_val]
+        push    ax
+        push    cx
+        push    dx
+        push    di
+        push    es
+        cmp     byte [bx+SURF.kind], SK_SCREEN
+        jne     .mem
+        call    scr_fill
+        jmp     .r
+.mem:   push    si
+        push    ds
+        pop     es
+.mc:    or      dx, dx
+        jz      .md
+        push    dx
+        cmp     dx, MAXW
+        jbe     .mn
+        mov     dx, MAXW
+.mn:    push    ax
+        push    cx
+        mov     di, DBUF
+        mov     cx, dx
+        mov     al, [fill_val]
+        rep     stosb
+        pop     cx
+        pop     ax
+        mov     si, DBUF
+        call    write_row
+        add     cx, dx
+        mov     si, dx
+        pop     dx
+        sub     dx, si
+        jmp     .mc
+.md:    pop     si
+.r:     pop     es
+        pop     di
+        pop     dx
+        pop     cx
+        pop     ax
+        ret
+
+; byte -> 8 pixel bytes (bit 7 first), values 0/1
+exptab:
+%assign b 0
+%rep 256
+        db      (b>>7)&1, (b>>6)&1, (b>>5)&1, (b>>4)&1, (b>>3)&1, (b>>2)&1, (b>>1)&1, b&1
+%assign b b+1
+%endrep
