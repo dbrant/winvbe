@@ -3,6 +3,7 @@
 Dmitry Brant, 2026.
 https://dmitrybrant.com
 
+* Drivers for Windows 1.0x: ./win1vbe
 * Drivers for Windows 2.x: ./win2vbe
 * Drivers for Windows 3.0: ./win3vbe
 
