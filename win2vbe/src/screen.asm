@@ -258,7 +258,9 @@ vbe_setwin:
         mov     dx, ax
         cmp     dword [win_func], 0
         je      .int
-        call    far [win_func]
+        pushf                           ; the window function may leave interrupts
+        call    far [win_func]          ; disabled (SeaVGABIOS starts with CLI and
+        popf                            ; returns with RETF)
         ret
 .int:   mov     ax, 0x4F05
         int     0x10
