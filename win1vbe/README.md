@@ -5,10 +5,10 @@ https://dmitrybrant.com
 
 Display driver for Windows 1.0x that runs Windows at 1024x768 and higher. It
 works on any video adapter whose BIOS supports **VESA VBE 1.2 or later** and
-offers a banked 256-colour mode at the chosen resolution. It also works on
+offers a banked 256-color mode at the chosen resolution. It also works on
 QEMU's standard VGA adapter. A 386 or later CPU is required.
 
-| Driver             | Resolution | Colours |
+| Driver             | Resolution | Colors |
 |--------------------|------------|---------|
 | VBE800 / VBE800C   | 800x600    | 8 / 16  |
 | VBE1024 / VBE1024C | 1024x768   | 8 / 16  |
@@ -17,9 +17,13 @@ QEMU's standard VGA adapter. A 386 or later CPU is required.
 | VBE1600 / VBE1600C | 1600x1200  | 8 / 16  |
 | VBE1920 / VBE1920C | 1920x1080  | 8 / 16  |
 
-The 8-colour drivers look exactly like the stock Windows 1.0x EGA driver. The
-`C` drivers have 16 colours, which Windows 1.0x never had: colours outside
+The 8-color drivers look exactly like the stock Windows 1.0x EGA driver. The
+`C` drivers have 16 colors, which Windows 1.0x never had: colors outside
 the 8 EGA ones (such as the default desktop green) appear as finer dithers.
+
+Here is Windows 1.04 running in 1280x1024 resolution:
+
+![Screenshot](screenshots/win104_1280_16.png)
 
 ## Installing
 
@@ -55,13 +59,13 @@ set.
 ## Where it runs
 
 Like the [Windows 2.x driver](../win2vbe), the driver asks the video BIOS for
-a 256-colour packed-pixel mode at its resolution and sets it. It honours the
+a 256-color packed-pixel mode at its resolution and sets it. It honours the
 card's window granularity, read/write windows and pitch. It falls back to the
 Bochs/QEMU "DISPI" registers if the BIOS has no such mode.
 
 Tested on:
 
-* QEMU `-vga std`: 1024x768 and 1280x1024, 8 and 16 colours;
+* QEMU `-vga std`: 1024x768 and 1280x1024, 8 and 16 colors;
 * 86Box with the S3 Trio32 PCI (its VESA BIOS) at 1280x1024, with a Microsoft
   serial mouse.
 
@@ -125,7 +129,7 @@ full-screen DOS programs and the switch back to Windows, and the mouse
 
 ## Building
 
-Needs Python 3 and NASM (https://www.nasm.us).
+Needs Python 3 and [NASM](https://www.nasm.us).
 
     cd src
     python build.py --nasm C:\path\to\nasm.exe --floppy ..\win1vbe.img

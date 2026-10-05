@@ -8,3 +8,25 @@ https://dmitrybrant.com
 * Drivers for Windows 3.0: ./win3vbe
 
 For VBE drivers that work with Windows 3.1, see the excellent [vbesvga.drv](https://github.com/PluMGMK/vbesvga.drv) repo.
+
+## Examples
+
+Windows 1.04 running in 1280x1024 resolution!
+
+![Screenshot](win1vbe/screenshots/win104_1280_16.png)
+
+---
+
+Windows 2.03 running in full HD (1920x1080)!
+
+![Screenshot](win2vbe/screenshots/win20_1920_8.png)
+
+Windows 2.03 running in full HD (1920x1080) and 256 colors!
+
+![Screenshot](win2vbe/screenshots/win20_1920_256.png)
+
+---
+
+Windows 3.0 running in 1600x1200 with 24-bit TrueColor!
+
+![Screenshot](win3vbe/screenshots/win30_1600_16m.png)

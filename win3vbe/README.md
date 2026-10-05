@@ -4,8 +4,8 @@ Dmitry Brant, 2026.
 https://dmitrybrant.com
 
 Display driver for Windows 3.0 that runs Windows at 1024x768 and higher with
-16 colours, 256 colours (with the palette manager), HiColor or TrueColor, in
-**real, standard and 386 enhanced mode**. It works on any video adapter whose
+16 colors, 256 colors (with the palette manager), HiColor or TrueColor, in
+real, standard and 386 enhanced mode. It works on any video adapter whose
 BIOS supports **VESA VBE 1.2 or later** and offers a banked mode of the right
 depth at the chosen resolution. It also works on QEMU's standard VGA adapter.
 
@@ -13,7 +13,7 @@ Windows 3.0 shipped with drivers for VGA (640x480) and a handful of specific
 Super VGA cards; there was no generic VESA driver. (Windows 3.1 has SVGA256 and,
 more recently, VBESVGA.DRV; those do not load in 3.0.)
 
-| Driver         | Colours                    | Video mode used |
+| Driver         | Colors                    | Video mode used |
 |----------------|----------------------------|-----------------|
 | `VBExxxx.DRV`  | 16                         | 8 bpp           |
 | `VBExxxxP.DRV` | 256, palette manager       | 8 bpp           |
@@ -23,6 +23,10 @@ more recently, VBESVGA.DRV; those do not load in 3.0.)
 `xxxx` is the horizontal resolution: 800 (800x600), 1024 (1024x768), 1152
 (1152x864), 1280 (1280x1024), 1600 (1600x1200) or 1920 (1920x1080), 24 drivers
 in all.
+
+Here is Windows 3.0 running in 1600x1200 resolution, with TrueColor:
+
+![Screenshot](screenshots/win30_1600_16m.png)
 
 ## Installing
 
@@ -39,7 +43,7 @@ that Setup installs with a display driver (the grabbers `VGACOLOR.GR2` and
 2. Select **Display**, then **Other (Requires disk provided by a hardware
    manufacturer)** at the end of the list.
 3. Enter the path of the floppy (`A:\`) or of the `drivers` directory, and pick a
-   resolution and colour depth, e.g. *VESA/VBE 1024x768 (256 colors)*.
+   resolution and color depth, e.g. *VESA/VBE 1024x768 (256 colors)*.
 4. Choose **Accept the configuration shown above**.
 
 **By hand:**
@@ -63,11 +67,11 @@ not start. Instead, a message on the text screen says so.
 At startup the driver asks the video BIOS (INT 10h, AX=4F00h/4F01h) for a mode
 at its resolution and sets it with 4F02h:
 
-* 16 and 256 colours: an 8 bpp packed-pixel mode;
-* HiColor: a 16 bpp (5:6:5) or 15 bpp (5:5:5) direct-colour mode. The layout is
+* 16 and 256 colors: an 8 bpp packed-pixel mode;
+* HiColor: a 16 bpp (5:6:5) or 15 bpp (5:5:5) direct-color mode. The layout is
   taken from the mode's bit count and green mask size;
-* TrueColor: a 32 bpp direct-colour mode with red, green and blue at bits 16, 8
-  and 0. Cards whose true-colour modes are 24 bpp (3 bytes per pixel) are not
+* TrueColor: a 32 bpp direct-color mode with red, green and blue at bits 16, 8
+  and 0. Cards whose true-color modes are 24 bpp (3 bytes per pixel) are not
   supported.
 
 It honours the card's window granularity and size, separate read/write windows
@@ -83,7 +87,7 @@ Tested on:
 * 86Box with the S3 Trio32 PCI (VBE 1.2, 2 MB): real, standard and enhanced mode
   at 1024x768 and 1280x1024, including DOS sessions. Its BIOS has 8 bpp modes
   only;
-* 86Box with the S3 Trio64 PCI (VBE 1.2, 4 MB): 256 colours, HiColor (its
+* 86Box with the S3 Trio64 PCI (VBE 1.2, 4 MB): 256 colors, HiColor (its
   15 bpp mode) and TrueColor at 1024x768.
 
 Which resolutions a card supports is up to its BIOS. Run `VBELIST.COM` in DOS
@@ -108,25 +112,25 @@ after a switch in enhanced mode, **with the stock VGA driver as well**. QEMU's
 VGA emulation does not cooperate with VDDVGA's save/restore. Standard mode is
 fine there.
 
-## Colour depths
+## Color depths
 
-* **16 colours** (`VBExxxx`): the screen is an 8 bpp banked frame buffer, but
+* **16 colors** (`VBExxxx`): the screen is an 8 bpp banked frame buffer, but
   towards GDI the device has **4 planes at 1 bpp**, the format of the VGA
-  driver. Colours are the 16 VGA colours; others are dithered.
-* **256 colours** (`VBExxxxP`): a palette device (`RC_PALETTE`) with 20 static
-  colours (the Windows 3.x system palette, at indices 0-9 and 246-255) and 236
+  driver. Colors are the 16 VGA colors; others are dithered.
+* **256 colors** (`VBExxxxP`): a palette device (`RC_PALETTE`) with 20 static
+  colors (the Windows 3.x system palette, at indices 0-9 and 246-255) and 236
   that applications set through palettes. The driver implements the palette
   functions: SetPalette and GetPalette (the hardware palette),
   SetPaletteTranslate and GetPaletteTranslate (the table that maps the
   foreground palette's indices to hardware indices) and UpdateColors (remapping
   the pixels of background windows). Pens, brushes, text and bitmaps copied
   from memory go through the translation. Bitmaps read back from the screen go
-  through its inverse. RGB colours map to the nearest static colour, or to a
-  dither of them for brushes. As with the 3.1 drivers, DIB colour tables arrive
+  through its inverse. RGB colors map to the nearest static color, or to a
+  dither of them for brushes. As with the 3.1 drivers, DIB color tables arrive
   from GDI as palette indices.
-* **HiColor** (`VBExxxxH`) and **TrueColor** (`VBExxxxT`): RGB colours are
+* **HiColor** (`VBExxxxH`) and **TrueColor** (`VBExxxxT`): RGB colors are
   stored directly in the pixels, so pens, brushes and text are exact, and
-  24 bpp DIBs (photos) keep all their colours. These two also implement
+  24 bpp DIBs (photos) keep all their colors. These two also implement
   **StretchBlt**. Without it, Windows 3.0's GDI stretches through 24 bpp DIBs
   and gets the rows wrong. (Paintbrush stretches its toolbox, which came out as
   noise.)
@@ -134,9 +138,9 @@ fine there.
 All four share one drawing engine, the one from the
 [Windows 2.x driver](../win2vbe), generalised to 1, 2 or 4 bytes per pixel:
 
-* A common row engine reads rows from the screen, colour or mono bitmaps into
+* A common row engine reads rows from the screen, color or mono bitmaps into
   pixel buffers, applies ROP3/ROP2 (through a cached lookup table for 16
-  colours, bitwise for the others) and writes them back. This covers BitBlt, FastBorder, Output (scan lines, styled
+  colors, bitwise for the others) and writes them back. This covers BitBlt, FastBorder, Output (scan lines, styled
   polylines), ExtTextOut/StrBlt (raster fonts), Pixel and ScanLR.
 * The software 32x32 cursor is protected by a semaphore against interrupt-time
   MoveCursor calls. Redraws at interrupt time run on the driver's own stack
@@ -157,10 +161,10 @@ What is new for 3.0:
 * **GDIINFO version 3.0** and **device-independent bitmaps:**
   `DeviceBitmapBits` (SetDIBits/GetDIBits) and `DIBScreenBlt`
   (SetDIBitsToDevice) handle uncompressed 1, 4, 8 and 24 bpp DIBs at every
-  colour depth, in both
+  color depth, in both
   BITMAPINFO and BITMAPCOREHEADER form. Icons, cursors, wallpapers and
   Paintbrush BMP files all use these paths.
-* Colour bitmaps store their planes **interleaved by scanline**, as Windows
+* Color bitmaps store their planes **interleaved by scanline**, as Windows
   3.0 expects (Windows 2 used one plane after another).
 * `UserRepaintDisable` and the INT 2Fh screen-switch protocol described above.
 * Cursors, icons, system bitmaps and OEM resources are copied from the stock
@@ -168,14 +172,14 @@ What is new for 3.0:
 
 ## Tested
 
-Program Manager, File Manager, Control Panel (colour schemes, desktop), Write
+Program Manager, File Manager, Control Panel (color schemes, desktop), Write
 (Helv, Tms Rmn, Terminal, bold/italic/underline, large sizes), Paintbrush
-(loading BMP files, and saving them as monochrome, 16-colour, 256-colour and
+(loading BMP files, and saving them as monochrome, 16-color, 256-color and
 24-bit BMP and reloading), Solitaire, Reversi, Clock, Calculator, Cardfile,
 wallpapers, full-screen and windowed DOS sessions, and exiting to DOS. See
 `screenshots\`.
 
-At 256 colours, HiColor and TrueColor, the tests also covered: Paintbrush
+At 256 colors, HiColor and TrueColor, the tests also covered: Paintbrush
 drawing (filled shapes, lines, text) and a 24-bit BMP, and a palette test
 program. That program realises a 256-entry logical palette and draws it with
 `PALETTEINDEX` brushes, an 8 bpp DIB, a 24 bpp DIB and StretchDIBits. The tests
@@ -190,18 +194,18 @@ screen come back) and standard and real mode.
 * `SaveScreenBitmap` is not implemented, so USER redraws what menus and
   dialogs covered instead of restoring it from off-screen memory, as the stock
   driver does.
-* The 8-colour variants of the Windows 2 driver are not built for 3.0, since
-  3.0 applications expect the 16-colour VGA palette.
+* The 8-color variants of the Windows 2 driver are not built for 3.0, since
+  3.0 applications expect the 16-color VGA palette.
 * At HiColor and TrueColor, Program Manager and other applications show the
-  **8-colour versions of icons** (brighter, EGA-style art) instead of the
-  16-colour ones. This is Windows 3.0's USER, not the driver: it picks the
-  icon image by comparing the colour counts in the icon with
+  **8-color versions of icons** (brighter, EGA-style art) instead of the
+  16-color ones. This is Windows 3.0's USER, not the driver: it picks the
+  icon image by comparing the color counts in the icon with
   `1 << (planes * bits per pixel)`, computed in 16 bits. At 16 bpp that is 0,
   and at 32 bpp it is 1 (the 386 masks the shift count), so the
-  lowest-colour image wins.
+  lowest-color image wins.
 * No 24 bpp (3 bytes per pixel) modes; TrueColor needs a 32 bpp mode.
-* The 256-colour driver matches RGB colours (for example in 24 bpp DIBs) to the
-  20 static colours, not to the whole hardware palette.
+* The 256-color driver matches RGB colors (for example in 24 bpp DIBs) to the
+  20 static colors, not to the whole hardware palette.
 
 ## Building
 
@@ -211,7 +215,7 @@ Needs Python 3 and NASM (https://www.nasm.us).
     python build.py --nasm C:\path\to\nasm.exe --floppy ..\win3vbe.img
 
 The script writes the 24 drivers, `OEMSETUP.INF`, `VBELIST.COM`, `README.TXT`
-and the VGA companion files to `drivers\`. Each colour depth is a separate
+and the VGA companion files to `drivers\`. Each color depth is a separate
 build of the same sources (`-DBPP=4`, `8`, `16` or `32`).
 It needs, in `src\`, the stock Windows 3.0 `VGA.DRV` (its resources are copied
 into the drivers) and the VGA companion files listed above. `--debug 1` builds drivers
@@ -220,7 +224,7 @@ that log to the Bochs/QEMU debug port (0xE9).
 Source files: `vbe.asm` (library init, includes), `enable.asm` (GDIINFO,
 Enable/Disable, INT 2Fh switching, repaint), `screen.asm` (VESA/DISPI mode
 setting through DPMI, banking, span access), `dib.asm` (DIB conversion),
-`palette.asm` (palette functions, 256 colours), `stretch.asm` (StretchBlt,
+`palette.asm` (palette functions, 256 colors), `stretch.asm` (StretchBlt,
 HiColor and TrueColor),
 `color.asm`, `surf.asm`, `rop.asm`, `bitblt.asm`, `output.asm`, `text.asm`,
 `pixel.asm`, `cursor.asm`, `stubs.asm`, `data.asm`, `defs.inc` (structures,
