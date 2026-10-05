@@ -65,6 +65,30 @@ Tested on:
 * 86Box with the S3 Trio32 PCI (its VESA BIOS) at 1280x1024, with a Microsoft
   serial mouse.
 
+## Mouse in QEMU
+
+Windows 1.0x has drivers for serial and bus mice, not PS/2, so in QEMU the mouse
+must be `-serial msmouse`. Two things get in the way there:
+
+* **Detection.** Windows 1's `MOUSE.DRV` resets the mouse by keeping DTR on and
+  raising RTS, and expects an `M` in reply, as a real Microsoft mouse sends.
+  QEMU's emulated mouse (QEMU 10) only resets when DTR and RTS both go from off
+  to on, so it answers too early, the reply is discarded, and Windows runs
+  without a mouse (no cursor). The DOS `MOUSE.COM` of that era fails the same
+  way. Workaround: in the installed `WINDOWS\WIN100.BIN`, find the bytes
+  `83 C2 04 B0 01 EE` (offset 0x91E6 with Windows 1.04 and `MOUSE.DRV`) and
+  change the `01` to `00`. The driver then switches both lines off first, which
+  QEMU understands and which also resets a real mouse.
+* **Floods.** QEMU delivers queued mouse packets back to back, not at 1200 baud,
+  and Windows' USER handles nested mouse events on a small private stack. Fast
+  movement can overflow it and hang Windows, even with the stock EGA driver
+  (in testing at about 1000 events per second). This driver keeps the work per
+  mouse event small: it redraws the cursor at most about every 8 ms, and it
+  lets waiting mouse interrupts run on its own 4 KB stack. In the same test it
+  survived 1500 events per second.
+
+86Box's serial mouse needs neither the patch nor fast movement precautions.
+
 ## How it works
 
 The drawing engine is the one from the Windows 2.x driver: an 8 bpp banked

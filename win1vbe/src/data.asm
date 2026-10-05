@@ -141,7 +141,13 @@ cur_xor         times 128 db 0
 cur_save        times 1024 db 0
 cur_oss         dw      0
 cur_osp         dw      0
-cur_stack       times 2048 db 0         ; private stack for interrupt-time cursor redraws
+cur_ofl         dw      0               ; flags of cur_update_ps's caller
+cur_loops       db      0
+cur_force       db      0               ; cur_update_ps: redraw even if not due
+                align   2
+cur_tick        dw      0               ; cur_due: time of the last draw
+cur_cnt         dw      0
+cur_stack       times 4096 db 0         ; private stack for interrupt-time cursor redraws
 cur_stack_top:
 
                 align   4

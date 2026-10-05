@@ -294,9 +294,49 @@ MoveCursor:
         xchg    al, [cur_busy]
         or      al, al
         jnz     .done                   ; screen busy: CheckCursor will catch up
+        mov     byte [cur_force], 0     ; redraw only if due (cur_due)
         call    cur_update_ps
         mov     byte [cur_busy], 0
 .done:  EPILOG  4
+
+; cur_due: CF=1 if the cursor was drawn less than about 8 ms ago.  Mouse
+; events can arrive much faster than a person can see (QEMU's serial mouse
+; delivers its queued packets back to back); redrawing for each of them makes
+; the mouse interrupt path slow enough for packets to pile up and nest in
+; USER, whose mouse stack is small.  Time: the BIOS tick count and the count
+; of timer channel 0 (mode 3: decrements by 2 at 1.19 MHz).
+cur_due:
+        push    ax
+        push    bx
+        push    es
+        xor     ax, ax
+        mov     es, ax
+        pushf
+        cli
+        mov     al, 0                   ; latch channel 0
+        out     0x43, al
+        in      al, 0x40
+        mov     ah, al
+        in      al, 0x40
+        xchg    al, ah                  ; ax = count
+        mov     bx, [es:0x46C]          ; BIOS ticks (low word)
+        popf
+        cmp     bx, [cur_tick]          ; another tick since the last draw
+        jne     .yes
+        mov     bx, [cur_cnt]
+        sub     bx, ax                  ; counts since the last draw
+        cmp     bx, 19000               ; ~8 ms
+        jb      .no
+.yes:   mov     [cur_cnt], ax
+        mov     bx, [es:0x46C]
+        mov     [cur_tick], bx
+        clc
+        jmp     .r
+.no:    stc
+.r:     pop     es
+        pop     bx
+        pop     ax
+        ret
 
 ; CheckCursor()
 CheckCursor:
@@ -305,6 +345,7 @@ CheckCursor:
         xchg    al, [cur_busy]
         or      al, al
         jnz     .done
+        mov     byte [cur_force], 1
         call    cur_update_ps
         mov     byte [cur_busy], 0
 .done:  EPILOG  0
@@ -314,22 +355,53 @@ CheckCursor:
 ; * on the driver's own stack: SYSTEM's timer handler calls CheckCursor on a
 ;   private stack of under 200 bytes, far too little for redrawing the cursor
 ;   and calling the video BIOS to switch banks;
-; * with interrupts disabled: the mouse interrupt handler re-enables
-;   interrupts before calling USER, and USER's mouse code does not survive
-;   being re-entered.  A slow redraw with interrupts enabled lets further
-;   mouse packets nest into it until the system crashes.
+; * drawing with interrupts disabled: the mouse interrupt handler re-enables
+;   interrupts before calling USER, so mouse packets arriving during a redraw
+;   would nest into it;
+; * MoveCursor redraws only if the last redraw was more than about 8 ms ago
+;   (cur_due), CheckCursor always ([cur_force]);
+; * then, still on the driver's stack, briefly with the caller's interrupt
+;   flag: mouse packets that are waiting are handled here.  USER handles mouse
+;   events on a small private stack and nests further events on it; QEMU's
+;   serial mouse delivers queued packets back to back, so a backlog nests
+;   deeply and overflows that stack.  Taken here, the nested events run on
+;   this stack, find cur_busy set and only record the new position, which is
+;   drawn next.
 ; The caller holds cur_busy, so nobody else is using cur_stack.
 cur_update_ps:
         pushf
+        pop     word [cur_ofl]          ; the caller's flags
         cli
         mov     [cur_oss], ss
         mov     [cur_osp], sp
         mov     ax, ds
         mov     ss, ax
         mov     sp, cur_stack_top
+        mov     byte [cur_loops], 4     ; at most 4 rounds per call
+.l:     cmp     byte [cur_force], 0
+        jne     .draw
+        call    cur_due
+        jc      .drain
+.draw:  mov     byte [cur_force], 0
         call    cur_update
-        mov     ss, [cur_oss]
+.drain: test    byte [cur_ofl+1], 0x02  ; IF: let pending interrupts in
+        jz      .x
+        sti
+        nop
+        cli
+        cmp     byte [cur_shown], 0     ; moved meanwhile: another round
+        je      .x
+        mov     ax, [cur_x]
+        cmp     ax, [cur_sx]
+        jne     .again
+        mov     ax, [cur_y]
+        cmp     ax, [cur_sy]
+        je      .x
+.again: dec     byte [cur_loops]
+        jnz     .l
+.x:     mov     ss, [cur_oss]
         mov     sp, [cur_osp]
+        push    word [cur_ofl]
         popf
         ret
 
