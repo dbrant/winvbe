@@ -17,7 +17,7 @@ STDMODE         equ 0
 %endif
 MAXMODES        equ (ROWBUF / 2 - 2)
 
-; set_video_mode: CF=1 if no usable 256-colour mode was found
+; set_video_mode: CF=1 if no usable 256-color mode was found
 set_video_mode:
         mov     byte [vmode_kind], VK_NONE
         call    try_vbe

@@ -3,9 +3,9 @@ VESA/VBE display drivers for Windows 2.x
 Dmitry Brant, 2026
 https://dmitrybrant.com
 
-VBExxxx  = 8 colours  (like the Windows 2.03 VGA driver)
-VBExxxxC = 16 colours
-VBExxxxP = 256 colours (fixed palette)
+VBExxxx  = 8 colors  (like the Windows 2.03 VGA driver)
+VBExxxxC = 16 colors
+VBExxxxP = 256 colors (fixed palette)
 
 Install: run SETUP from the Windows setup files, choose
 "Other (requires disk provided by a hardware manufacturer)"
@@ -15,7 +15,7 @@ your settings type  COPY /Y WIN.OLD WIN.INI  in C:\WINDOWS
 afterwards.
 
 Requirements: a VESA BIOS (VBE 1.2+) that offers a banked
-256-colour mode at the chosen resolution, or the Bochs/QEMU
+256-color mode at the chosen resolution, or the Bochs/QEMU
 VBE adapter (QEMU -vga std).
 
 VBELIST.COM lists the modes your video BIOS offers.

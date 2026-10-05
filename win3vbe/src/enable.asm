@@ -165,7 +165,7 @@ no_mode_msg:
 %elif BPP = 32
         db      ' TrueColor (32 bpp)', 13, 10
 %else
-        db      ' 256-colour', 13, 10
+        db      ' 256-color', 13, 10
 %endif
         db      'VESA mode (and no QEMU/Bochs VBE adapter was found).', 13, 10, 13, 10
         db      'Reset the computer and select a lower resolution in SYSTEM.INI,', 13, 10

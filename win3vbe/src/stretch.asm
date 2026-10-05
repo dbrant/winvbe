@@ -80,7 +80,7 @@ StretchBlt:
         je      .ok
         cmp     word [st_sh], 0
         je      .ok
-        mov     al, [src+SURF.kind]     ; mono <-> colour conversion
+        mov     al, [src+SURF.kind]     ; mono <-> color conversion
         mov     ah, [dst+SURF.kind]
         cmp     al, SK_MONO
         jne     .s1

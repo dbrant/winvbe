@@ -87,7 +87,7 @@ row_addr:
 
 ; ---------------------------------------------------------------------------
 ; read_row: bx -> SURF, ax = y, cx = x, dx = w, di -> buffer (DS)
-; Stores w pixel values (colour indices, or 0/1 for mono).  May scribble up to
+; Stores w pixel values (color indices, or 0/1 for mono).  May scribble up to
 ; 8 bytes before and after the buffer.  Preserves bx, ds.
 ; ---------------------------------------------------------------------------
 read_row:
@@ -106,7 +106,7 @@ read_row:
 %if PACKED
         cmp     byte [bx+SURF.kind], SK_COLOR
         jne     .mono
-        push    dx                      ; packed colour: copy w pixels
+        push    dx                      ; packed color: copy w pixels
         push    di
         call    row_addr
         mov     si, di
@@ -193,7 +193,7 @@ read_row:
 %if NPLANES = 4
         cmp     byte [bx+SURF.planes], 3
         jne     .done
-        mov     cx, [rr_n]              ; 8-colour bitmap -> full-intensity colours
+        mov     cx, [rr_n]              ; 8-color bitmap -> full-intensity colors
         shl     cx, 3
         mov     si, di
         push    bx
@@ -251,7 +251,7 @@ write_row:
 %if PACKED
         cmp     byte [bx+SURF.kind], SK_COLOR
         jne     .mono
-        push    dx                      ; packed colour: copy w pixels
+        push    dx                      ; packed color: copy w pixels
         push    si
         call    row_addr
         pop     si
@@ -295,7 +295,7 @@ write_row:
 %if NPLANES = 4
         cmp     byte [bx+SURF.planes], 3
         jne     .w16
-        push    ax                      ; 8-colour bitmap: translate the row
+        push    ax                      ; 8-color bitmap: translate the row
         push    bx                      ; (with the bytes around it) into XBUF
         push    cx
         push    di
@@ -582,9 +582,9 @@ fill_row_val:                           ; ah = value, ax high? -> value in [fill
         ret
 
 %if NPLANES = 4
-; 3-plane (8-colour) bitmaps on the 16-colour device: their colours are the
-; full-intensity ones (as with the 8-colour drivers), so 1..6 are the bright
-; colours and 7 is white.
+; 3-plane (8-color) bitmaps on the 16-color device: their colors are the
+; full-intensity ones (as with the 8-color drivers), so 1..6 are the bright
+; colors and 7 is white.
 c8to16  db      0, 9, 10, 11, 12, 13, 14, 15
 c16to8  db      0, 1, 2, 3, 4, 5, 6, 7, 7, 1, 2, 3, 4, 5, 6, 7
 %endif

@@ -2,7 +2,7 @@
 ; Pixel and ScanLR
 ; ---------------------------------------------------------------------------
 
-; index_mono: al = colour index -> al = mono value (luminance test like ColorInfo)
+; index_mono: al = color index -> al = mono value (luminance test like ColorInfo)
 index_mono:
         push    bx
         push    cx
@@ -238,7 +238,7 @@ ScanLR:
         and     al, CMASK
         cmp     al, [sl_target]
         je      .eq
-        ; pixel differs: matches when searching for "not colour" (bit 0 set)
+        ; pixel differs: matches when searching for "not color" (bit 0 set)
         test    byte [bp+sl_style], 1
         jz      .no
         stc

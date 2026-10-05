@@ -254,7 +254,7 @@ ScanLR:
 %endif
         cmp     EA, [sl_target]
         je      .eq
-        ; pixel differs: matches when searching for "not colour" (bit 0 set)
+        ; pixel differs: matches when searching for "not color" (bit 0 set)
         test    byte [bp+sl_style], 1
         jz      .no
         stc

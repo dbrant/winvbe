@@ -32,8 +32,8 @@ README_TXT = r"""VESA/VBE display drivers for Windows 1.0x
 Dmitry Brant, 2026
 https://dmitrybrant.com
 
-VBExxxx  = 8 colours  (like the Windows 1.0x EGA driver)
-VBExxxxC = 16 colours
+VBExxxx  = 8 colors  (like the Windows 1.0x EGA driver)
+VBExxxxC = 16 colors
 A 386 or later CPU is required.
 
 Windows 1.0x SETUP builds the display driver into WIN100.BIN,
@@ -52,7 +52,7 @@ so the driver is installed with SETUP:
     for a new installation and choose "VESA/VBE display driver".
 
 Requirements: a VESA BIOS (VBE 1.2+) that offers a banked
-256-colour mode at the chosen resolution, or the Bochs/QEMU
+256-color mode at the chosen resolution, or the Bochs/QEMU
 VBE adapter (QEMU -vga std).
 
 VBELIST.COM lists the modes your video BIOS offers.

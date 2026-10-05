@@ -85,9 +85,9 @@ dmCharExtra     equ 0x16
 
 OPAQUE          equ 2
 
-; Physical colour: byte 0 = colour index, byte 1 = mono value (0/1)
+; Physical color: byte 0 = color index, byte 1 = mono value (0/1)
 ; Physical pen (6 bytes)
-PEN_COLOR       equ 0           ; dword physical colour
+PEN_COLOR       equ 0           ; dword physical color
 PEN_STYLE       equ 4
 PEN_SIZE        equ 6
 
@@ -104,7 +104,7 @@ BRF_HATCH       equ 1
 
 ; Surface descriptor (built in the data segment for source / destination)
 struc SURF
-  .kind     resb 1      ; 0 = screen, 1 = mono memory, 2 = colour memory
+  .kind     resb 1      ; 0 = screen, 1 = mono memory, 2 = color memory
   .planes   resb 1
   .width    resw 1
   .height   resw 1

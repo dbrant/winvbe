@@ -52,7 +52,7 @@ do_scanlines:
         call    rop_flags
         and     ah, ~ROPF_S
         mov     [g_ropf], ah
-        ; pattern: brush, or pen colour if no brush
+        ; pattern: brush, or pen color if no brush
         les     si, [bp+op_lpBrush]
         mov     ax, es
         or      ax, si

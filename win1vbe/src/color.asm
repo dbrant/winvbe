@@ -1,9 +1,9 @@
 ; ---------------------------------------------------------------------------
-; Colours, ColorInfo, RealizeObject
+; Colors, ColorInfo, RealizeObject
 ; ---------------------------------------------------------------------------
 BRF_SOLID       equ 2
 
-; rgb_to_phys: al=R ah=G dl=B  ->  bl = colour index, bh = mono value
+; rgb_to_phys: al=R ah=G dl=B  ->  bl = color index, bh = mono value
 ; preserves ax, cx, dx, si, di
 rgb_to_phys:
         push    cx
@@ -37,7 +37,7 @@ rgb_to_phys:
         ret
 
 %if NPLANES = 4
-; nearest16: al=R ah=G dl=B -> bl = index of nearest palette colour
+; nearest16: al=R ah=G dl=B -> bl = index of nearest palette color
 nearest16:
         push    ecx
         push    esi
@@ -91,7 +91,7 @@ nearest16x:
 
 %if NPLANES = 4
 ; dither16: al=R ah=G dl=B -> d16_plan[64] = palette indices sorted by luminance
-; (Knoll pattern dithering: error-accumulating nearest-colour picks)
+; (Knoll pattern dithering: error-accumulating nearest-color picks)
 dither16:
         pushad
         movzx   ecx, al
@@ -178,7 +178,7 @@ dither16:
         ret
 %endif
 
-; rgb of each colour index (8-bit components)
+; rgb of each color index (8-bit components)
 rgbtab:
 %if NPLANES = 3
         db        0,  0,  0,  255,  0,  0,    0,255,  0,  255,255,  0
@@ -417,7 +417,7 @@ pattern_row:
         dec     ah
         jnz     .m
         jmp     .r
-.color: ; colour pattern: combine the bitmap's planes
+.color: ; color pattern: combine the bitmap's planes
         push    bp
         push    ax                      ; al = number of planes
         mov     bp, 1                   ; plane bit
@@ -442,7 +442,7 @@ pattern_row:
         jnz     .pl
         pop     ax
 %if NPLANES = 4
-        cmp     al, 3                   ; 8-colour pattern: full-intensity colours
+        cmp     al, 3                   ; 8-color pattern: full-intensity colors
         jne     .c16
         mov     bx, dx
         mov     ah, 8
@@ -457,7 +457,7 @@ pattern_row:
 .c16:
 %endif
         pop     bp
-        ; mono version: pixel == white -> 1 (approximate with colour index CMASK)
+        ; mono version: pixel == white -> 1 (approximate with color index CMASK)
         mov     bx, dx
         xor     al, al
         mov     ah, 8
@@ -568,7 +568,7 @@ rotate_brush:
         mov     ax, cx
         or      ax, dx
         jz      .r
-        ; copy colour pattern to tmp_pat
+        ; copy color pattern to tmp_pat
         push    ds
         push    es
         pop     ds
@@ -579,7 +579,7 @@ rotate_brush:
         mov     di, tmp_pat
         push    cx
         mov     cx, 72
-        rep     movsb                   ; colour + mono
+        rep     movsb                   ; color + mono
         pop     cx
         pop     di
         pop     es
@@ -616,7 +616,7 @@ rotate_brush:
         jb      .row
 .r:     ret
 
-; check_solid: set BRF_SOLID / BR_FG if all colour pixels are equal (not hatched)
+; check_solid: set BRF_SOLID / BR_FG if all color pixels are equal (not hatched)
 check_solid:
         test    byte [es:di+BR_FLAGS], BRF_HATCH
         jnz     .no

@@ -211,7 +211,7 @@ c24_val         dd      0
 %if BPP = 8
 ; palette: RGB+flags per entry (as SetPalette passes them), translation
 ; tables set by GDI (SetPaletteTranslate) and their inverse
-pal_rgb:                                ; the static colours at 0-9 and 246-255
+pal_rgb:                                ; the static colors at 0-9 and 246-255
         db        0,   0,   0, 0
         db      128,   0,   0, 0
         db        0, 128,   0, 0

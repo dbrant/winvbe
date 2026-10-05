@@ -13,11 +13,11 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, HERE)
 import mkne
 
-# colour variants: name suffix -> (bits per pixel, planes, colours)
+# color variants: name suffix -> (bits per pixel, planes, colors)
 DEPTHS = [('', 4, 3, 8), ('C', 4, 4, 16), ('P', 8, 1, 256)]
 RESOLUTIONS = [(800, 600), (1024, 768), (1152, 864), (1280, 1024), (1600, 1200), (1920, 1080)]
 
-# (xres, yres, (bpp, planes, colours), name)
+# (xres, yres, (bpp, planes, colors), name)
 VARIANTS = [(x, y, (bpp, planes, colors), 'VBE%d%s' % (x, suffix))
             for x, y in RESOLUTIONS for suffix, bpp, planes, colors in DEPTHS]
 
@@ -27,9 +27,9 @@ README_TXT = r"""VESA/VBE display drivers for Windows 2.x
 Dmitry Brant, 2026
 https://dmitrybrant.com
 
-VBExxxx  = 8 colours  (like the Windows 2.03 VGA driver)
-VBExxxxC = 16 colours
-VBExxxxP = 256 colours (fixed palette)
+VBExxxx  = 8 colors  (like the Windows 2.03 VGA driver)
+VBExxxxC = 16 colors
+VBExxxxP = 256 colors (fixed palette)
 
 Install: run SETUP from the Windows setup files, choose
 "Other (requires disk provided by a hardware manufacturer)"
@@ -39,7 +39,7 @@ your settings type  COPY /Y WIN.OLD WIN.INI  in C:\WINDOWS
 afterwards.
 
 Requirements: a VESA BIOS (VBE 1.2+) that offers a banked
-256-colour mode at the chosen resolution, or the Bochs/QEMU
+256-color mode at the chosen resolution, or the Bochs/QEMU
 VBE adapter (QEMU -vga std).
 
 VBELIST.COM lists the modes your video BIOS offers.

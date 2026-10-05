@@ -148,7 +148,7 @@ fill_pb:
         pop     ax
         ret
 
-; convert_sb: apply mono<->colour conversion to SBUF[0..g_w)
+; convert_sb: apply mono<->color conversion to SBUF[0..g_w)
 convert_sb:
         mov     al, [g_conv]
         or      al, al

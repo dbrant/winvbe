@@ -1,7 +1,7 @@
 ; ---------------------------------------------------------------------------
 ; VBE.DRV - Windows 3.0 display driver for VESA VBE (and QEMU/Bochs) adapters
 ; Banked VBE frame buffer.  BPP=4: an 8 bpp mode, presented to GDI as a
-; 4-plane, 16-colour device.  BPP=8: 256 colours with the palette manager.
+; 4-plane, 16-color device.  BPP=8: 256 colors with the palette manager.
 ; BPP=16 / 32: HiColor (5:6:5 or 5:5:5) / TrueColor (8:8:8 in 32 bits).
 ; Runs in real, standard and 386 enhanced mode (386 CPU required).
 ; Dmitry Brant, 2026

@@ -77,7 +77,7 @@ EnumObj:
         je      .brushes
         jmp     .done
 .pens:  xor     si, si                  ; style 0..4
-.ps:    xor     di, di                  ; colour index
+.ps:    xor     di, di                  ; color index
 .pc:    mov     [bp-22], si             ; lopnStyle
         mov     word [bp-20], 1         ; lopnWidth.x
         mov     word [bp-18], 0

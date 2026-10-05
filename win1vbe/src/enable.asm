@@ -96,7 +96,7 @@ Enable:
         and     al, 0x7F
         mov     [saved_mode], al
         call    set_video_mode
-        jc      no_mode                 ; no usable 256-colour mode: does not return
+        jc      no_mode                 ; no usable 256-color mode: does not return
         mov     byte [enabled], 1
         mov     ax, 1
 .done:
@@ -124,7 +124,7 @@ no_mode:
         jmp     .h
 no_mode_msg:
         db      13, 10, 'Windows display driver: the video BIOS offers no ', RES_X, 'x', RES_Y
-        db      ' 256-colour', 13, 10
+        db      ' 256-color', 13, 10
         db      'VESA mode (and no QEMU/Bochs VBE adapter was found).', 13, 10, 13, 10
         db      'Reset the computer, run SETUP from the Windows setup files and pick', 13, 10
         db      'a lower resolution, or load a VESA BIOS extension such as UNIVBE first.', 13, 10, 0
@@ -152,7 +152,7 @@ Disable:
         EPILOG  4
 
 %if NPLANES = 3
-palette6:                               ; 6-bit DAC values (EGA bright colours)
+palette6:                               ; 6-bit DAC values (EGA bright colors)
         db       0,  0,  0
         db      63, 21, 21
         db      21, 63, 21
@@ -162,7 +162,7 @@ palette6:                               ; 6-bit DAC values (EGA bright colours)
         db      21, 63, 63
         db      63, 63, 63
 %else
-palette6:                               ; Windows VGA 16-colour order (plane 0 = red)
+palette6:                               ; Windows VGA 16-color order (plane 0 = red)
         db       0,  0,  0
         db      32,  0,  0
         db       0, 32,  0

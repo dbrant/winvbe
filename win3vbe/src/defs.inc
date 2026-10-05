@@ -9,15 +9,15 @@
 %define YRES 768
 %endif
 %ifndef BPP
-%define BPP 4                   ; 4: 16 colours, planar towards GDI
-%endif                          ; 8: 256 colours, palette; 16: HiColor; 32: TrueColor
+%define BPP 4                   ; 4: 16 colors, planar towards GDI
+%endif                          ; 8: 256 colors, palette; 16: HiColor; 32: TrueColor
 %ifndef DEBUG
 %define DEBUG 1
 %endif
 
 ; Pixel elements: the row engine handles one element per pixel.  ELEM is its
 ; size in bytes, and the macros below name registers / string instructions of
-; that width.  Physical colours are dwords: the pixel value in the low ELEM
+; that width.  Physical colors are dwords: the pixel value in the low ELEM
 ; bytes (low 3 for TrueColor), the mono value (0/1) in byte MONOB.
 %if BPP = 4
 %define NPLANES 4
@@ -28,7 +28,7 @@ PIXMASK         equ 0x0F
 %elif BPP = 8
 %define NPLANES 1
 PACKED          equ 1
-NCOLORS         equ 20                  ; static colours of the palette
+NCOLORS         equ 20                  ; static colors of the palette
 ELEM            equ 1
 PIXMASK         equ 0xFF
 %elif BPP = 16
@@ -48,8 +48,8 @@ PIXMASK         equ 0x00FFFFFF
 %endif
 CMASK           equ PIXMASK
 BITROP          equ PACKED              ; ROPs evaluated bitwise on pixel values (else by table)
-PALMGR          equ (BPP = 8)           ; 256 colours through the palette manager
-FIXPAL          equ 0                   ; 256 colours, fixed palette (Windows 2)
+PALMGR          equ (BPP = 8)           ; 256 colors through the palette manager
+FIXPAL          equ 0                   ; 256 colors, fixed palette (Windows 2)
 WHITE           equ PIXMASK             ; pixel value of white (all bits set)
 %if ELEM = 1
 MONOB           equ 1
@@ -143,9 +143,9 @@ dmCharExtra     equ 0x16
 
 OPAQUE          equ 2
 
-; Physical colour: byte 0 = colour index, byte 1 = mono value (0/1)
+; Physical color: byte 0 = color index, byte 1 = mono value (0/1)
 ; Physical pen (6 bytes)
-PEN_COLOR       equ 0           ; dword physical colour
+PEN_COLOR       equ 0           ; dword physical color
 PEN_STYLE       equ 4
 PEN_SIZE        equ 6
 
@@ -162,7 +162,7 @@ BRF_HATCH       equ 1
 
 ; Surface descriptor (built in the data segment for source / destination)
 struc SURF
-  .kind     resb 1      ; 0 = screen, 1 = mono memory, 2 = colour memory
+  .kind     resb 1      ; 0 = screen, 1 = mono memory, 2 = color memory
   .planes   resb 1
   .width    resw 1
   .height   resw 1

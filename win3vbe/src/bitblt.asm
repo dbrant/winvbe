@@ -3,7 +3,7 @@
 ; ---------------------------------------------------------------------------
 
 ; get_dm_colors: es:si -> DRAWMODE (may be NULL).  Needs dst loaded.
-; Physical colours: pixel in the low bytes (PIXMASK), mono value in byte MONOB.
+; Physical colors: pixel in the low bytes (PIXMASK), mono value in byte MONOB.
 get_dm_colors:
         mov     dword [g_bk], WHITE
         mov     byte [g_bkm], 1
@@ -32,7 +32,7 @@ get_dm_colors:
         mov     [g_rop2], ax
 .x:
 %if PALMGR
-        ; palette translation applies to colours drawn on the screen
+        ; palette translation applies to colors drawn on the screen
         mov     byte [g_xlat], 0
         cmp     byte [pal_mod], 0
         je      .r
@@ -136,7 +136,7 @@ build_prow:
         mov     byte [g_psolid], 1
 .xl:
 %if PALMGR
-        cmp     byte [g_xlat], 0        ; brush colours drawn on the screen
+        cmp     byte [g_xlat], 0        ; brush colors drawn on the screen
         je      .done
         cmp     byte [g_hatch], 0
         jne     .xh                     ; (the hatch background is g_bk already)
@@ -211,7 +211,7 @@ fill_pb:
         popad
         ret
 
-; convert_sb: apply mono<->colour conversion to SBUF[0..g_w)
+; convert_sb: apply mono<->color conversion to SBUF[0..g_w)
 convert_sb:
         mov     al, [g_conv]
         or      al, al
@@ -221,7 +221,7 @@ convert_sb:
         mov     cx, [g_w]
         cmp     al, 1
         jne     .c2
-        mov     edx, [g_bk]             ; mono 1 -> background, 0 -> text colour
+        mov     edx, [g_bk]             ; mono 1 -> background, 0 -> text color
         mov     ebx, [g_fg]
 .l1:    mov     eax, ebx
         cmp     ESZ [si], 0
@@ -231,7 +231,7 @@ convert_sb:
         add     si, ELEM
         loop    .l1
         jmp     .e
-.c2:    mov     edx, [g_bk]             ; colour == background -> 1, else 0
+.c2:    mov     edx, [g_bk]             ; color == background -> 1, else 0
 .l2:    xor     eax, eax
         cmp     [si], ED
         jne     .s2
@@ -586,7 +586,7 @@ BitBlt:
         mov     byte [g_conv], 2
 .nosrc:
 %if PALMGR
-        ; colour copies between memory and the screen go through the palette
+        ; color copies between memory and the screen go through the palette
         ; translation (memory -> screen) or its inverse (screen -> memory)
         mov     word [g_sxl], 0
         test    byte [g_ropf], ROPF_S

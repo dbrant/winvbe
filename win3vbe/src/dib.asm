@@ -54,7 +54,7 @@ dib_parse:
         je      .ok
         cmp     ax, 24
         jne     .bad
-.ok:    ; number of colour table entries
+.ok:    ; number of color table entries
         xor     ax, ax
         cmp     word [dib_bpp], 24
         je      .nc
@@ -87,9 +87,9 @@ dib_parse:
         pop     eax
         ret
 
-; dib_build_xlat: DIB colour index -> physical value (pixel or, for
-; [dib_mono], the mono value), from the colour table.  On the 256-colour
-; device GDI gives the colour table as WORD palette indices.
+; dib_build_xlat: DIB color index -> physical value (pixel or, for
+; [dib_mono], the mono value), from the color table.  On the 256-color
+; device GDI gives the color table as WORD palette indices.
 dib_build_xlat:
         pushad
         push    es
@@ -126,7 +126,7 @@ dib_build_xlat:
         popad
         ret
 
-; phys_for_dib: ebx = physical colour -> ebx = mono value ([dib_mono]) or pixel
+; phys_for_dib: ebx = physical color -> ebx = mono value ([dib_mono]) or pixel
 phys_for_dib:
         cmp     byte [dib_mono], 0
         je      .c
@@ -357,10 +357,10 @@ pix_index_calc:
         pop     si
         pop     es
         jmp     .r
-.notr:  cmp     word [dib_bpp], 8       ; 8 bpp: our palette as colour table
+.notr:  cmp     word [dib_bpp], 8       ; 8 bpp: our palette as color table
         je      .r
 %elif BPP = 4
-        cmp     word [dib_bpp], 1       ; 4 / 8 bpp: our colours as they are
+        cmp     word [dib_bpp], 1       ; 4 / 8 bpp: our colors as they are
         jne     .r4
 %endif
 .rgb:   mov     ebx, eax
@@ -482,7 +482,7 @@ dib_pack:
         and     eax, WHITE
 .gr:    ret
 
-; dib_put_ctab: write our colour table into the BITMAPINFO
+; dib_put_ctab: write our color table into the BITMAPINFO
 dib_put_ctab:
         pushad
         push    es
@@ -513,7 +513,7 @@ dib_put_ctab:
         jmp     .st
 .c:     cmp     word [dib_bpp], 4
         jne     .c8
-        mov     si, bx                  ; 4 bpp: the VGA colours
+        mov     si, bx                  ; 4 bpp: the VGA colors
         imul    si, si, 3
         mov     al, [cs:vga16+si]
         shl     eax, 8

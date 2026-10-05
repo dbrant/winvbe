@@ -51,7 +51,7 @@ ExtTextOut:
         les     si, [bp+et_lpClip]
         call    set_clip
         call    text_setup_font
-        ; colours for the destination type
+        ; colors for the destination type
         mov     eax, [g_fg]
         mov     edx, [g_bk]
         cmp     byte [dst+SURF.kind], SK_MONO

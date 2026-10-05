@@ -52,7 +52,7 @@ do_scanlines:
         call    rop_flags
         and     ah, ~ROPF_S
         mov     [g_ropf], ah
-        ; pattern: brush, or pen colour if no brush
+        ; pattern: brush, or pen color if no brush
         les     si, [bp+op_lpBrush]
         mov     ax, es
         or      ax, si
@@ -397,7 +397,7 @@ plot:
         pop     bx
 %if BITROP
         mov     edx, eax                ; D
-        mov     eax, [bx]               ; pen / gap colour
+        mov     eax, [bx]               ; pen / gap color
         call    rop_px
         mov     edx, eax
 %else
@@ -422,7 +422,7 @@ plot:
 ; (mono bit, or the pixel, palette-translated on the screen)
 pen_value:
         mov     eax, [es:si+PEN_COLOR]
-; phys_value: eax = physical colour -> eax = value for the destination
+; phys_value: eax = physical color -> eax = value for the destination
 phys_value:
         cmp     byte [dst+SURF.kind], SK_MONO
         jne     .c

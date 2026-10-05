@@ -28,7 +28,7 @@ EXPORTS = [
     ('FastBorder', 17, 'FASTBORDER'), ('SetAttribute', 18, 'SETATTRIBUTE'),
     ('DeviceBitmapBits', 19, 'DEVICEBITMAPBITS'), ('CreateBitmap', 20, 'CREATEBITMAP'),
     ('DIBScreenBlt', 21, 'DIBSCREENBLT'),
-    # 256-colour builds only
+    # 256-color builds only
     ('SetPalette', 22, 'SETPALETTE'), ('GetPalette', 23, 'GETPALETTE'),
     ('SetPaletteTranslate', 24, 'SETPALETTETRANSLATE'),
     ('GetPaletteTranslate', 25, 'GETPALETTETRANSLATE'), ('UpdateColors', 26, 'UPDATECOLORS'),

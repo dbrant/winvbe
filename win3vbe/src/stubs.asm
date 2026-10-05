@@ -83,8 +83,8 @@ Control:
 .yes:   mov     ax, 1
 .done:  EPILOG  14
 %if FIXPAL
-; SETCOLORTABLE: lpInData -> {WORD index; COLORREF colour}, lpOutData -> the
-; colour set.  Applications (PC Paintbrush) load image palettes this way.
+; SETCOLORTABLE: lpInData -> {WORD index; COLORREF color}, lpOutData -> the
+; color set.  Applications (PC Paintbrush) load image palettes this way.
 .sct:   les     di, [bp+10]
         mov     bx, [es:di]
         cmp     bx, 256
@@ -136,7 +136,7 @@ EnumObj:
         je      .brushes
         jmp     .done
 .pens:  xor     si, si                  ; style 0..4
-.ps:    xor     di, di                  ; colour index
+.ps:    xor     di, di                  ; color index
 .pc:    mov     [bp-22], si             ; lopnStyle
         mov     word [bp-20], 1         ; lopnWidth.x
         mov     word [bp-18], 0

@@ -1,4 +1,4 @@
-; VBELIST.COM - list the 256-colour (and other) VESA modes offered by the video BIOS.
+; VBELIST.COM - list the 256-color (and other) VESA modes offered by the video BIOS.
 ; Dmitry Brant, 2026.
 ; Output: one line per mode: mode, width x height, bits/pixel, memory model,
 ; window granularity / size (K), bytes per scan line.     nasm -f bin -o VBELIST.COM vbelist.asm

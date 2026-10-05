@@ -1,10 +1,10 @@
 ; ---------------------------------------------------------------------------
-; Palette manager support (256 colours): SetPalette, GetPalette,
+; Palette manager support (256 colors): SetPalette, GetPalette,
 ; SetPaletteTranslate, GetPaletteTranslate, UpdateColors
 ;
 ; pal_rgb holds the hardware palette (R, G, B, flags per entry).  GDI's
 ; translate table maps the indices of the foreground palette to hardware
-; indices: colours drawn on the screen (pens, brushes, text, and bitmaps
+; indices: colors drawn on the screen (pens, brushes, text, and bitmaps
 ; copied from memory) go through it, bitmaps read back from the screen go
 ; through its inverse.
 ; ---------------------------------------------------------------------------

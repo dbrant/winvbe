@@ -1,5 +1,5 @@
 ; ---------------------------------------------------------------------------
-; Raster operations: a cached lookup table result = T[P,S,D] over colour indices
+; Raster operations: a cached lookup table result = T[P,S,D] over color indices
 ; ---------------------------------------------------------------------------
 %if NPLANES = 3
 NB              equ 3

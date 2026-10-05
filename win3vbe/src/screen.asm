@@ -414,7 +414,7 @@ vbe_check_mode:
         cmp     byte [PBUF+0x1B], 4     ; packed pixel
         jne     .no
 %else
-        mov     al, [PBUF+0x1B]         ; memory model: direct colour (or packed)
+        mov     al, [PBUF+0x1B]         ; memory model: direct color (or packed)
         cmp     al, 6
         je      .dc
         cmp     al, 4
@@ -848,7 +848,7 @@ dac_load:
         ret
 %endif
 
-palette6:                               ; Windows VGA 16-colour order (plane 0 = red)
+palette6:                               ; Windows VGA 16-color order (plane 0 = red)
         db       0,  0,  0
         db      32,  0,  0
         db       0, 32,  0

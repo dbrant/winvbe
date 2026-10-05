@@ -33,7 +33,7 @@ db_cref         dd      0
 nt_tab          dw      0
 nt_n            db      0
 n256_best       db      0               ; nearest256: best entry so far
-fq_c            times 3 db 0            ; fixpal_plan: colour, cube levels, fractions
+fq_c            times 3 db 0            ; fixpal_plan: color, cube levels, fractions
 fq_l            times 3 db 0
 fq_f            times 3 db 0
 pal_dirty       db      0               ; SETCOLORTABLE changed the palette
@@ -178,8 +178,8 @@ rop_cnt         dw      0
 
 %if BPP = 8
 ; the fixed palette (R, G, B, 0): entries i and 255-i are complements.
-; 0-15: the EGA colours (bit 0 blue, 1 green, 2 red, 3 intensity), 240-255
-; their complements; 16-19 and 236-239: greys; 20-235: the 6x6x6 colour
+; 0-15: the EGA colors (bit 0 blue, 1 green, 2 red, 3 intensity), 240-255
+; their complements; 16-19 and 236-239: greys; 20-235: the 6x6x6 color
 ; cube (20 + 36r + 6g + b)
 pal_rgb:
         db        0,  0,  0,0,    0,  0,128,0,    0,128,  0,0,    0,128,128,0
