@@ -28,7 +28,7 @@ Windows 2.03 running in full HD (1920x1080) and 256 colors!
 
 Windows 3.0 running in 1600x1200 with 24-bit TrueColor!
 
-![Screenshot](win3vbe/screenshots/win30_1600_16m.png)
+![Screenshot](win3vbe/screenshots/win30_1600_16m2.png)
 
 ## For Windows 3.1x
 
