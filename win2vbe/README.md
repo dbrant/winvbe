@@ -73,16 +73,6 @@ and a short README.
 3. When SETUP finishes, run `copy /y win.old win.ini` in `C:\WINDOWS`, since SETUP
    replaces your WIN.INI, and this will restore it.
 
-## Why the 800x600 patch could not simply be extended
-
-The Windows 2 VGA driver draws in 16-color planar mode through the 64 KB VGA
-window. 800x600 needs 800*600/8 = 60,000 bytes per plane, which still fits
-(that is why `win2vesa` works). 1024x768 needs 98,304 bytes per plane. QEMU
-cannot display planar memory beyond 64 KB per plane, and in its VBE 4-bpp modes
-it drops CPU writes. Real cards usually need card-specific banking for planar
-modes anyway. This driver therefore uses the universal 256-color banked modes,
-and it was written from scratch rather than by patching the VGA driver.
-
 ## 256 colors
 
 Windows 2 knows nothing of palettes: applications ask for RGB colors and the
