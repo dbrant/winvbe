@@ -68,8 +68,9 @@ At startup the driver asks the video BIOS (INT 10h, AX=4F00h/4F01h) for a mode
 at its resolution and sets it with 4F02h:
 
 * 16 and 256 colors: an 8 bpp packed-pixel mode;
-* HiColor: a 16 bpp (5:6:5) or 15 bpp (5:5:5) direct-color mode. The layout is
-  taken from the mode's bit count and green mask size;
+* HiColor: a 16 bpp (5:6:5) direct-color mode, or a 15 bpp (5:5:5) one if the
+  BIOS has no 16 bpp mode at that resolution. The layout is taken from the
+  mode's bit count and green mask size;
 * TrueColor: a 32 bpp direct-color mode with red, green and blue at bits 16, 8
   and 0. Cards whose true-color modes are 24 bpp (3 bytes per pixel) are not
   supported.
@@ -87,8 +88,8 @@ Tested on:
 * 86Box with the S3 Trio32 PCI (VBE 1.2, 2 MB): real, standard and enhanced mode
   at 1024x768 and 1280x1024, including DOS sessions. Its BIOS has 8 bpp modes
   only;
-* 86Box with the S3 Trio64 PCI (VBE 1.2, 4 MB): 256 colors, HiColor (its
-  15 bpp mode) and TrueColor at 1024x768.
+* 86Box with the S3 Trio64 PCI (VBE 1.2, 4 MB): 256 colors, HiColor (in its
+  15 bpp mode, before the driver preferred 16 bpp) and TrueColor at 1024x768.
 
 Which resolutions a card supports is up to its BIOS. Run `VBELIST.COM` in DOS
 to see the list. Cards without a VESA BIOS need a VBE TSR such as UniVBE
@@ -203,6 +204,14 @@ screen come back) and standard and real mode.
   `1 << (planes * bits per pixel)`, computed in 16 bits. At 16 bpp that is 0,
   and at 32 bpp it is 1 (the 386 masks the shift count), so the
   lowest-color image wins.
+* Program Manager keeps a copy of each icon in its group files (`.GRP`) in
+  the display's pixel format, and reuses it as long as the number of planes
+  and bits per pixel match. It cannot tell a 5:5:5 HiColor display from a
+  5:6:5 one, so icons saved in one show wrong colors in the other (white turns
+  light cyan). This happens after running an older build of the HiColor
+  drivers, which chose 5:5:5 modes at some resolutions. To refresh the icons,
+  start Windows once with a driver of another color depth (for example the
+  16-color one) and exit Windows; the next HiColor session saves fresh icons.
 * No 24 bpp (3 bytes per pixel) modes; TrueColor needs a 32 bpp mode.
 * The 256-color driver matches RGB colors (for example in 24 bpp DIBs) to the
   20 static colors, not to the whole hardware palette.

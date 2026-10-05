@@ -215,6 +215,9 @@ try_vbe_body:
         mov     dx, [DBUF+0x10]         ; segment of VideoModePtr
         call    rm_ptr_sel
         jc      .fail
+%if BPP = 16
+        mov     byte [want565], 1       ; first pass: 5:6:5 modes only
+%endif
         mov     si, [DBUF+0x0E]
         mov     di, SBUF
         mov     cx, MAXMODES
@@ -229,7 +232,16 @@ try_vbe_body:
 .cpd:   mov     si, SBUF
 .next:  lodsw
         cmp     ax, 0xFFFF
+%if BPP = 16
+        jne     .chk
+        cmp     byte [want565], 0       ; none: take a 5:5:5 mode
         je      .std
+        mov     byte [want565], 0
+        jmp     .cpd
+.chk:
+%else
+        je      .std
+%endif
         mov     [vbe_mode], ax
         call    vbe_check_mode
         jnc     .found
@@ -427,12 +439,14 @@ vbe_check_mode:
         cmp     byte [PBUF+0x19], 15
         jne     .no
         mov     byte [pix_g6], 0        ; 5:5:5
-        jmp     .yes
+        jmp     .p555
 .m16:   test    byte [PBUF], 0x02
         jz      .yes
         cmp     byte [PBUF+0x21], 5     ; green mask size 5: 5:5:5 after all
         jne     .yes
         mov     byte [pix_g6], 0
+.p555:  cmp     byte [want565], 0       ; 5:5:5 only if there is no 5:6:5 mode
+        jne     .no
 %else
         cmp     byte [PBUF+0x19], 32
         jne     .no

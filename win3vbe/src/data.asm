@@ -104,6 +104,7 @@ fill_val        dd      0
 fill_pat        dd      0
 %if BPP = 16
 pix_g6          db      1               ; 1: 5:6:5, 0: 5:5:5
+want565         db      0               ; mode search: accept 5:6:5 only
 %endif
 rr_n            dw      0
 ch_x            dw      0
