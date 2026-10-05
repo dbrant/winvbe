@@ -2,7 +2,7 @@
 - NASM Map file ---------------------------------------------------------------
 
 Source file:  vbe.asm
-Output file:  E:\Systems\Dos\qemu\win21\win3vbe\src\out\VBE1920T.bin
+Output file:  /mnt/e/Systems/Dos/qemu/win21/win3vbe/src/out/VBE1920T.bin
 
 -- Symbols --------------------------------------------------------------------
 
@@ -14,6 +14,9 @@ Value     Name
 00000004  ELEM
 00FFFFFF  PIXMASK
 00FFFFFF  CMASK
+00000001  BITROP
+00000000  PALMGR
+00000000  FIXPAL
 00FFFFFF  WHITE
 00000003  MONOB
 00000002  ESHIFT
@@ -113,6 +116,7 @@ Value     Name
 00000006  ro_lpXForm
 00000008  QUERYESCSUPPORT
 00000005  GETCOLORTABLE
+00000004  SETCOLORTABLE
 0000000E  eo_style
 0000000A  eo_callback
 00000006  eo_data
