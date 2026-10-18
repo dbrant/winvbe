@@ -1,0 +1,23 @@
+# Files for DOS and Windows 1.x-3.0 must keep their exact bytes.  Without these
+# rules a "text=auto" setting (such as a global "* text=auto eol=lf") treats any
+# of them without NUL bytes as text and stores CR LF as LF: for example the
+# Windows 1 .GRB/.LGO files (a file name, CR LF, Ctrl-Z) and the README.TXT and
+# OEMSETUP.INF files on the driver disks.
+
+# DOS and Windows binaries, disk images, pictures
+*.[Gg][Rr][Bb] binary
+*.[Ll][Gg][Oo] binary
+*.[Gg][Rr][23] binary
+*.[Rr][Ll][Ee] binary
+*.[Dd][Rr][Vv] binary
+*.[Cc][Oo][Mm] binary
+*.[Ee][Xx][Ee] binary
+*.[Ff][Oo][Nn] binary
+*.[Ii][Mm][Gg] binary
+*.[Pp][Cc][Xx] binary
+*.[Bb][Mm][Pp] binary
+*.[Pp][Nn][Gg] binary
+
+# Text files for the driver disks: CR LF line ends, kept as they are
+**/drivers/*.[Tt][Xx][Tt] -text
+**/drivers/*.[Ii][Nn][Ff] -text
