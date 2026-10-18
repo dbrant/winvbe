@@ -1,9 +1,9 @@
-# VESA/VBE display driver for Windows 3.0 (800x600 up to 1920x1080)
+# VESA/VBE display driver for Windows 3.0 (640x480 up to 1920x1080)
 
 Dmitry Brant, 2026.
 https://dmitrybrant.com
 
-Display driver for Windows 3.0 that runs Windows at 1024x768 and higher with
+Display driver for Windows 3.0 that runs Windows at 640x480 up to 1920x1080 with
 16 colors, 256 colors (with the palette manager), HiColor or TrueColor, in
 real, standard and 386 enhanced mode. It works on any video adapter whose
 BIOS supports **VESA VBE 1.2 or later** and offers a banked mode of the right
@@ -20,9 +20,11 @@ more recently, VBESVGA.DRV; those do not load in 3.0.)
 | `VBExxxxH.DRV` | HiColor: 65536 (or 32768)  | 16 (or 15) bpp  |
 | `VBExxxxT.DRV` | TrueColor: 16.7 million    | 32 bpp          |
 
-`xxxx` is the horizontal resolution: 800 (800x600), 1024 (1024x768), 1152
-(1152x864), 1280 (1280x1024), 1600 (1600x1200) or 1920 (1920x1080), 24 drivers
-in all.
+`xxxx` is the horizontal resolution: 640 (640x480), 800 (800x600), 1024
+(1024x768), 1152 (1152x864), 1280 (1280x1024), 1600 (1600x1200) or 1920
+(1920x1080), 28 drivers in all. At 640x480 the 16-color driver does what the
+stock VGA driver does; the 256-color, HiColor and TrueColor ones give the VGA
+resolution more colors.
 
 Here is Windows 3.0 running in 1600x1200 resolution, with TrueColor:
 
@@ -31,7 +33,7 @@ Here is Windows 3.0 running in 1600x1200 resolution, with TrueColor:
 ## Installing
 
 The drivers are in `drivers\`, and `win3vbe.img` is a 1.44 MB floppy image with
-the same files: the 24 drivers, an `OEMSETUP.INF` for Windows Setup,
+the same files: the 28 drivers, an `OEMSETUP.INF` for Windows Setup,
 `VBELIST.COM`, a short README, and the stock Windows 3.0 VGA companion files
 that Setup installs with a display driver (the grabbers `VGACOLOR.GR2` and
 `VGA.GR3`, the startup logo `VGALOGO.LGO`/`VGALOGO.RLE` and the fonts
@@ -223,7 +225,7 @@ Needs Python 3 and NASM (https://www.nasm.us).
     cd src
     python build.py --nasm C:\path\to\nasm.exe --floppy ..\win3vbe.img
 
-The script writes the 24 drivers, `OEMSETUP.INF`, `VBELIST.COM`, `README.TXT`
+The script writes the 28 drivers, `OEMSETUP.INF`, `VBELIST.COM`, `README.TXT`
 and the VGA companion files to `drivers\`. Each color depth is a separate
 build of the same sources (`-DBPP=4`, `8`, `16` or `32`).
 It needs, in `src\`, the stock Windows 3.0 `VGA.DRV` (its resources are copied

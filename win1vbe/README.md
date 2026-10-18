@@ -1,15 +1,16 @@
-# VESA/VBE display driver for Windows 1.0x (800x600 up to 1920x1080)
+# VESA/VBE display driver for Windows 1.0x (640x480 up to 1920x1080)
 
 Dmitry Brant, 2026.
 https://dmitrybrant.com
 
-Display driver for Windows 1.0x that runs Windows at 1024x768 and higher. It
+Display driver for Windows 1.0x that runs Windows at 640x480 up to 1920x1080. It
 works on any video adapter whose BIOS supports **VESA VBE 1.2 or later** and
 offers a banked 256-color mode at the chosen resolution. It also works on
 QEMU's standard VGA adapter. A 386 or later CPU is required.
 
 | Driver             | Resolution | Colors |
 |--------------------|------------|---------|
+| VBE640 / VBE640C   | 640x480    | 8 / 16  |
 | VBE800 / VBE800C   | 800x600    | 8 / 16  |
 | VBE1024 / VBE1024C | 1024x768   | 8 / 16  |
 | VBE1152 / VBE1152C | 1152x864   | 8 / 16  |

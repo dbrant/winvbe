@@ -17,7 +17,7 @@ import mkne
 # color depths: bits per pixel -> (name suffix, description)
 DEPTHS = {4: ('', '16 colors'), 8: ('P', '256 colors'),
           16: ('H', '65536 colors'), 32: ('T', '16M colors')}
-RESOLUTIONS = [(800, 600), (1024, 768), (1152, 864), (1280, 1024), (1600, 1200), (1920, 1080)]
+RESOLUTIONS = [(640, 480), (800, 600), (1024, 768), (1152, 864), (1280, 1024), (1600, 1200), (1920, 1080)]
 
 # (xres, yres, bpp, name)
 VARIANTS = [(x, y, bpp, 'VBE%d%s' % (x, DEPTHS[bpp][0]))
@@ -57,7 +57,7 @@ README_TXT = r"""VESA/VBE display drivers for Windows 3.0
 Dmitry Brant, 2026
 https://dmitrybrant.com
 
-Drivers for 800x600 up to 1920x1080, for real, standard and 386
+Drivers for 640x480 up to 1920x1080, for real, standard and 386
 enhanced mode.  A 386 or later CPU is required.
 
   VBExxxx   16 colors

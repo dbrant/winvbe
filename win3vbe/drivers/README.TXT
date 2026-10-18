@@ -3,7 +3,7 @@ VESA/VBE display drivers for Windows 3.0
 Dmitry Brant, 2026
 https://dmitrybrant.com
 
-Drivers for 800x600 up to 1920x1080, for real, standard and 386
+Drivers for 640x480 up to 1920x1080, for real, standard and 386
 enhanced mode.  A 386 or later CPU is required.
 
   VBExxxx   16 colors

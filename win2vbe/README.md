@@ -1,15 +1,16 @@
-# VESA/VBE display driver for Windows 2.x (800x600 up to 1920x1080)
+# VESA/VBE display driver for Windows 2.x (640x480 up to 1920x1080)
 
 Dmitry Brant, 2026.
 https://dmitrybrant.com
 
-Display driver for Windows 2.x that runs Windows at 1024x768 and higher. It works on
+Display driver for Windows 2.x that runs Windows at 640x480 up to 1920x1080. It works on
 any video adapter whose BIOS supports **VESA VBE 1.2 or later** and offers a
 banked 256-color mode at the chosen resolution. It also works on QEMU's
 standard VGA adapter.
 
 | Driver                       | Resolution | Colors       |
 |------------------------------|------------|---------------|
+| VBE640 / VBE640C / VBE640P    | 640x480    | 8 / 16 / 256  |
 | VBE800 / VBE800C / VBE800P    | 800x600    | 8 / 16 / 256  |
 | VBE1024 / VBE1024C / VBE1024P | 1024x768   | 8 / 16 / 256  |
 | VBE1152 / VBE1152C / VBE1152P | 1152x864   | 8 / 16 / 256  |
@@ -57,8 +58,8 @@ Tested on:
 
 Which resolutions a card supports is up to its BIOS. Run `VBELIST.COM` from the
 floppy (or `drivers\`) in DOS to see the list. The emulated S3 Trio32 offers
-256-color modes at 640x480, 800x600, 1024x768 and 1280x1024, so VBE800,
-VBE1024 and VBE1280 work there. Cards without a VESA BIOS (for example an
+256-color modes at 640x480, 800x600, 1024x768 and 1280x1024, so VBE640,
+VBE800, VBE1024 and VBE1280 work there. Cards without a VESA BIOS (for example an
 original Tseng ET4000) need a VBE TSR such as UniVBE loaded before Windows.
 
 ## Installing
@@ -160,7 +161,7 @@ Needs Python 3 and NASM (https://www.nasm.us).
     cd src
     python build.py --nasm C:\path\to\nasm.exe --floppy ..\win2vbe.img
 
-The script writes all 18 drivers, `VBELIST.COM` and `README.TXT` to
+The script writes all 21 drivers, `VBELIST.COM` and `README.TXT` to
 `src\drivers\` (`--only VBE1024P` builds just one). Each color count is a
 separate build of the same sources (`-DBPP=4 -DNPLANES=3` or `4`, or
 `-DBPP=8`). It needs `IBMPS250.DRV`, `EGAHIRES.GRB` and `CGA.LGO` from the

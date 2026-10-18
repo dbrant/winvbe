@@ -15,7 +15,7 @@ import mkne
 
 # color variants: name suffix -> (bits per pixel, planes, colors)
 DEPTHS = [('', 4, 3, 8), ('C', 4, 4, 16), ('P', 8, 1, 256)]
-RESOLUTIONS = [(800, 600), (1024, 768), (1152, 864), (1280, 1024), (1600, 1200), (1920, 1080)]
+RESOLUTIONS = [(640, 480), (800, 600), (1024, 768), (1152, 864), (1280, 1024), (1600, 1200), (1920, 1080)]
 
 # (xres, yres, (bpp, planes, colors), name)
 VARIANTS = [(x, y, (bpp, planes, colors), 'VBE%d%s' % (x, suffix))
